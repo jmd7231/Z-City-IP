@@ -6,6 +6,30 @@ local Dynamic = 0
 
 BlurBackground = BlurBackground or hg.DrawBlur
 
+local function ensureScrappersMediumFont()
+    if surface.GetFontTable("ZB_ScrappersMedium") then
+        return
+    end
+
+    local fontName = "Bahnschrift"
+    local fontConVar = GetConVar("hg_font")
+
+    if fontConVar then
+        local conVarValue = fontConVar:GetString()
+
+        if conVarValue ~= "" then
+            fontName = conVarValue
+        end
+    end
+
+    surface.CreateFont("ZB_ScrappersMedium", {
+        font = fontName,
+        size = ScreenScale(10),
+        weight = 400,
+        antialias = true
+    })
+end
+
 function PANEL:Init()
     self.Map = ""
     self.Votes = 0
@@ -15,6 +39,7 @@ function PANEL:Init()
     self.hovered = false
     self.alpha = 0
     self.setalpha = 0
+    ensureScrappersMediumFont()
     self:SetFont("ZB_ScrappersMedium")
 	self:SetPaintBackground(false)
 	self:SetContentAlignment(5)
