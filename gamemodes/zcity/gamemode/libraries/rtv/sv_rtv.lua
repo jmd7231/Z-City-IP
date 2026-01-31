@@ -14,6 +14,18 @@ local playervote = {}
 local mappull = {}
 local playerVoteWeight = {}
 
+local function getPlayerVoteWeight(ply)
+    if IsValid(ply) and isfunction(ply.HasPurchase) then
+        local ok, hasPremium = pcall(ply.HasPurchase, ply, "zpremium")
+
+        if ok and hasPremium then
+            return 2
+        end
+    end
+
+    return 1
+end
+
 local function GetMapFamily(map)
     if string.find(string.lower(map), "smalltown") then
         return "smalltown"
@@ -156,7 +168,7 @@ net.Receive("ZB_RockTheVote_vote", function(len, ply)
     local map = net.ReadString()
     playervote[playerIdx] = map
 
-    playerVoteWeight[playerIdx] = 1
+    playerVoteWeight[playerIdx] = getPlayerVoteWeight(ply)
     
     votes[map] = (votes[map] or 0) + playerVoteWeight[playerIdx]
 
