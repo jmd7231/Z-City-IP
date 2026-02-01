@@ -13,6 +13,8 @@ local playervote = {}
 
 local mappull = {}
 local playerVoteWeight = {}
+local rtvMaps = {}
+local rtvMapList = {}
 
 local function GetMapFamily(map)
     if string.find(string.lower(map), "smalltown") then
@@ -58,6 +60,16 @@ end
 local function GetDataPath(fileName)
     local serverName = GetSafeServerName()
     return "zbattle/" .. serverName .. "/" .. fileName
+end
+
+local function IsMapAvailable(map)
+    if not isstring(map) or map == "" then
+        return false
+    end
+    if util.IsValidMap and util.IsValidMap(map) then
+        return true
+    end
+    return file.Exists("maps/" .. map .. ".bsp", "GAME")
 end
 
 
@@ -154,6 +166,7 @@ net.Receive("ZB_RockTheVote_vote", function(len, ply)
     end
 
     local map = net.ReadString()
+    if not rtvMaps[map] then return end
     playervote[playerIdx] = map
 
     playerVoteWeight[playerIdx] = 1
@@ -172,9 +185,39 @@ function zb.EndRTV()
 
     local winmap = table.GetWinningKey(votes)
     if not winmap then return end
+    if not rtvMaps[winmap] then
+        winmap = rtvMapList[1]
+    end
+    if not IsMapAvailable(winmap) and winmap ~= "random" then
+        winmap = rtvMapList[1]
+    end
+    if not winmap then
+        print("RTV: winning map not in current vote list.")
+        return
+    end
 
     if winmap == "random" then
+        if #mappull == 0 then
+            getmaps()
+        end
+        if #mappull == 0 then
+            print("RTV: no maps available for random selection.")
+            return
+        end
         winmap = mappull[math.random(#mappull)]
+    end
+    if not IsMapAvailable(winmap) then
+        getmaps()
+        for _, map in ipairs(mappull) do
+            if IsMapAvailable(map) then
+                winmap = map
+                break
+            end
+        end
+        if not IsMapAvailable(winmap) then
+            print("RTV: selected map is unavailable, aborting map change.")
+            return
+        end
     end
 
     local mapFamily = GetMapFamily(winmap)
@@ -294,7 +337,12 @@ function zb.StartRTV(time)
     if zb.votestarted then return end
     
     getmaps()
+    if #mappull == 0 then
+        print("RTV: no maps available to start vote.")
+        return
+    end
 
+    endStarted = false
     rtvtime = CurTime() + (time or 45)
 
     local PlayedMaps = {}
@@ -419,14 +467,31 @@ function zb.StartRTV(time)
     end
 
     if #finalmaps == 0 then
-        local rndMap = mappull[ math.random(#mappull) ]
-        table.insert(finalmaps, rndMap)
+        if #mappull > 0 then
+            local rndMap = mappull[math.random(#mappull)]
+            table.insert(finalmaps, rndMap)
+        else
+            print("RTV: no maps available to populate vote.")
+            return
+        end
     end
 
     table.insert(finalmaps, "random")
+    table.Empty(rtvMaps)
+    table.Empty(rtvMapList)
+    for _, map in ipairs(finalmaps) do
+        if map == "random" or IsMapAvailable(map) then
+            rtvMaps[map] = true
+            table.insert(rtvMapList, map)
+        end
+    end
+    if #rtvMapList == 0 then
+        print("RTV: vote list is empty after validation.")
+        return
+    end
 
     net.Start("ZB_RockTheVote_start")
-        net.WriteTable(finalmaps)
+        net.WriteTable(rtvMapList)
         net.WriteFloat(rtvtime)
     net.Broadcast()
 
