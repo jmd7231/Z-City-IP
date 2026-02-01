@@ -60,6 +60,13 @@ local function GetDataPath(fileName)
     return "zbattle/" .. serverName .. "/" .. fileName
 end
 
+local function IsMapAvailable(map)
+    if not isstring(map) or map == "" then
+        return false
+    end
+    return file.Exists("maps/" .. map .. ".bsp", "GAME")
+end
+
 
 local function EnsureDataDirectory()
     local serverName = GetSafeServerName()
@@ -174,7 +181,27 @@ function zb.EndRTV()
     if not winmap then return end
 
     if winmap == "random" then
+        if #mappull == 0 then
+            getmaps()
+        end
+        if #mappull == 0 then
+            print("RTV: no maps available for random selection.")
+            return
+        end
         winmap = mappull[math.random(#mappull)]
+    end
+    if not IsMapAvailable(winmap) then
+        getmaps()
+        for _, map in ipairs(mappull) do
+            if IsMapAvailable(map) then
+                winmap = map
+                break
+            end
+        end
+        if not IsMapAvailable(winmap) then
+            print("RTV: selected map is unavailable, aborting map change.")
+            return
+        end
     end
 
     local mapFamily = GetMapFamily(winmap)
@@ -294,6 +321,10 @@ function zb.StartRTV(time)
     if zb.votestarted then return end
     
     getmaps()
+    if #mappull == 0 then
+        print("RTV: no maps available to start vote.")
+        return
+    end
 
     rtvtime = CurTime() + (time or 45)
 
@@ -419,8 +450,13 @@ function zb.StartRTV(time)
     end
 
     if #finalmaps == 0 then
-        local rndMap = mappull[ math.random(#mappull) ]
-        table.insert(finalmaps, rndMap)
+        if #mappull > 0 then
+            local rndMap = mappull[math.random(#mappull)]
+            table.insert(finalmaps, rndMap)
+        else
+            print("RTV: no maps available to populate vote.")
+            return
+        end
     end
 
     table.insert(finalmaps, "random")
