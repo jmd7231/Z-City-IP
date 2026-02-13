@@ -45,10 +45,27 @@ local function CheckAttachments(ply,tbl)
 end
 
 local function ForceApplyAppearance(ply, tbl, noModelChange)
+    if APmodule.IsModelSelectionLocked and APmodule.IsModelSelectionLocked(ply) then
+        local forcedModel = APmodule.GetLockedModelForPlayer and APmodule.GetLockedModelForPlayer(ply)
+        if forcedModel then
+            tbl.AModel = forcedModel
+        end
+    end
+
     local tMdl = APmodule.PlayerModels[1][tbl.AModel] or APmodule.PlayerModels[2][tbl.AModel] or tbl.AModel
     local mdl = istable(tMdl) and tMdl.mdl or tMdl
     if mdl ~= ply:GetModel() and !noModelChange then
         ply:SetModel(mdl)
+    end
+
+    if APmodule.ShouldDisableAppearance and APmodule.ShouldDisableAppearance(ply) then
+        ply:SetSubMaterial()
+        ply:SetBodyGroups( "00000000000000000000" )
+        ply:SetNetVar("Accessories", {})
+
+        ply.CurAppearance = {}
+        table.CopyFromTo(tbl, ply.CurAppearance)
+        return
     end
 
     local clr = tbl.AColor
@@ -122,6 +139,13 @@ local tWaitResponse = {}
 
 function ApplyAppearance(Client,tAppearance,bRandom,bResponeIsValid,bUseCahsed)
     if not IsValid(Client) then return end
+
+    if APmodule.IsModelSelectionLocked and APmodule.IsModelSelectionLocked(Client) and istable(tAppearance) then
+        local forcedModel = APmodule.GetLockedModelForPlayer and APmodule.GetLockedModelForPlayer(Client)
+        if forcedModel then
+            tAppearance.AModel = forcedModel
+        end
+    end
     if bRandom or (Client.IsBot and Client:IsBot()) or (Client.IsRagdoll and Client:IsRagdoll()) then
         tAppearance = APmodule.GetRandomAppearance()
         WearAppearance(Client,tAppearance)

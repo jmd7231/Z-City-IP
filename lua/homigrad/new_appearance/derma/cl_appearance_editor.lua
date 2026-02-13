@@ -452,15 +452,35 @@ function PANEL:PostInit()
     modelSelector:Dock(FILL)
     modelSelector:SetContentAlignment(5)
     function modelSelector:OnSelect(i,str)
+        local lply = LocalPlayer()
+        if APmodule.IsModelSelectionLocked and APmodule.IsModelSelectionLocked(lply) then
+            local forcedModel = APmodule.GetLockedModelForPlayer and APmodule.GetLockedModelForPlayer(lply)
+            if forcedModel and str != forcedModel then
+                modelSelector:SetText(APmodule.GetCustomMenuName and APmodule.GetCustomMenuName(lply) or forcedModel)
+                main.AppearanceTable.AModel = forcedModel
+                return
+            end
+        end
+
         main.AppearanceTable.AModel = str
     end
 
-    for k, v in pairs(APmodule.PlayerModels[1]) do
-        modelSelector:AddChoice(k)
-    end
+    local lply = LocalPlayer()
+    if APmodule.IsModelSelectionLocked and APmodule.IsModelSelectionLocked(lply) then
+        local forcedModel = APmodule.GetLockedModelForPlayer and APmodule.GetLockedModelForPlayer(lply)
+        if forcedModel then
+            main.AppearanceTable.AModel = forcedModel
+            modelSelector:AddChoice(APmodule.GetCustomMenuName and APmodule.GetCustomMenuName(lply) or forcedModel)
+            modelSelector:SetText(APmodule.GetCustomMenuName and APmodule.GetCustomMenuName(lply) or forcedModel)
+        end
+    else
+        for k, v in pairs(APmodule.PlayerModels[1]) do
+            modelSelector:AddChoice(k)
+        end
 
-    for k, v in pairs(APmodule.PlayerModels[2]) do
-        modelSelector:AddChoice(k)
+        for k, v in pairs(APmodule.PlayerModels[2]) do
+            modelSelector:AddChoice(k)
+        end
     end
 
     -- Main bottom container

@@ -41,7 +41,7 @@ end
 hg.Appearance.GenerateRandomName = GenerateRandomName
 
 -- Check access to all
-local access = {
+hg.Appearance.AccessList = hg.Appearance.AccessList or {
     --["STEAM_0:1:163575696"] = true -- distac our custom model creator
 }
 local hg_appearance_access_for_all = ConVarExists("hg_appearance_access_for_all") and GetConVar("hg_appearance_access_for_all") or CreateConVar("hg_appearance_access_for_all", 1, {FCVAR_REPLICATED,FCVAR_NEVER_AS_STRING,FCVAR_ARCHIVE}, "Enable free items in appearance", 0, 1)
@@ -53,7 +53,11 @@ if SERVER then
     SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
 end
 local function GetAccessToAll(ply)
-    return GetGlobalBool("hg_appearance_access_for_all") or (ply:IsSuperAdmin() or ply:IsAdmin() or access[ply:SteamID()])
+    return GetGlobalBool("hg_appearance_access_for_all")
+        or ply:IsSuperAdmin()
+        or ply:IsAdmin()
+        or hg.Appearance.AccessList[ply:SteamID()]
+        or (hg.Appearance.CanOpenDonatorMenu and hg.Appearance.CanOpenDonatorMenu(ply))
 end
 
 hg.Appearance.GetAccessToAll = GetAccessToAll
@@ -364,7 +368,7 @@ end
 hg.Appearance.ValidateFunctions = {
     AModel = function(str)
         if !isstring(str) then return false end
-        if !PlayerModels[1][str] and !PlayerModels[2][str] then return false end
+        if !PlayerModels[1][str] and !PlayerModels[2][str] and !util.IsValidModel(str) then return false end
 
         return true
     end,
