@@ -82,3 +82,60 @@ function hg.Appearance.GetCustomMenuName(target)
 
     return data.menuName or "Custom Model"
 end
+
+
+if SERVER then
+    local dataPath = "zcity/custom_avatars_overrides.json"
+
+    local function saveOverrides()
+        file.CreateDir("zcity")
+        file.Write(dataPath, util.TableToJSON(hg.Appearance.CustomAvatars, true) or "{}")
+    end
+
+    local function loadOverrides()
+        if not file.Exists(dataPath, "DATA") then return end
+
+        local raw = file.Read(dataPath, "DATA")
+        local tbl = util.JSONToTable(raw or "")
+        if not istable(tbl) then return end
+
+        for steamID, data in pairs(tbl) do
+            if isstring(steamID) and istable(data) and isstring(data.model) and data.model != "" then
+                hg.Appearance.CustomAvatars[string.upper(steamID)] = data
+            end
+        end
+    end
+
+    hook.Add("Initialize", "hg.Appearance.LoadCustomAvatarOverrides", loadOverrides)
+    timer.Simple(0, loadOverrides)
+
+    function hg.Appearance.SetCustomAvatarOverride(steamID, data)
+        steamID = normalizeSteamID(steamID)
+        if not steamID then return false, "Invalid SteamID" end
+        if not istable(data) then return false, "Invalid data" end
+        if not isstring(data.model) or data.model == "" then return false, "Invalid model" end
+        if not util.IsValidModel(data.model) then return false, "Model path is not valid on server" end
+
+        hg.Appearance.CustomAvatars[steamID] = {
+            model = data.model,
+            allowDonatorMenu = data.allowDonatorMenu ~= false,
+            lockModelSelection = data.lockModelSelection ~= false,
+            disableAppearance = data.disableAppearance ~= false,
+            menuName = data.menuName
+        }
+
+        saveOverrides()
+        return true
+    end
+
+    function hg.Appearance.RemoveCustomAvatarOverride(steamID)
+        steamID = normalizeSteamID(steamID)
+        if not steamID then return false, "Invalid SteamID" end
+        if not hg.Appearance.CustomAvatars[steamID] then return false, "No override found" end
+
+        hg.Appearance.CustomAvatars[steamID] = nil
+        saveOverrides()
+
+        return true
+    end
+end

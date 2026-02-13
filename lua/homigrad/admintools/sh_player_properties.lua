@@ -603,6 +603,141 @@ properties.Add( "door_unlock", {
     end
 })
 
+local function applyCustomModelNoAppearance(target, modelPath)
+    if not IsValid(target) or not target:IsPlayer() then return false, "Invalid player" end
+    if not util.IsValidModel(modelPath) then return false, "Invalid model path" end
+
+    local appearance = target.CurAppearance or (hg.Appearance and hg.Appearance.GetRandomAppearance and hg.Appearance.GetRandomAppearance())
+    if not appearance then return false, "Appearance module not ready" end
+
+    appearance = table.Copy(appearance)
+    appearance.AModel = modelPath
+    appearance.AAttachments = {}
+
+    if hg.Appearance and hg.Appearance.ForceApplyAppearance then
+        hg.Appearance.ForceApplyAppearance(target, appearance)
+    else
+        target:SetModel(modelPath)
+        target:SetSubMaterial()
+        target:SetBodyGroups("00000000000000000000")
+        target:SetNetVar("Accessories", {})
+    end
+
+    return true
+end
+
+properties.Add( "custom_model_apply_permanent", {
+    MenuLabel = "Custom Model (Permanent)",
+    Order = 13,
+    MenuIcon = "icon16/user_edit.png",
+
+    Filter = check,
+    Action = function( self, ent )
+        Derma_StringRequest(
+            "Permanent custom model for " .. ent:GetPlayerName(),
+            "Enter model path (example: models/player/custom/model.mdl)",
+            "",
+            function(text)
+                self:MsgStart()
+                    net.WriteEntity( ent )
+                    net.WriteString( text )
+                self:MsgEnd()
+            end
+        )
+    end,
+    Receive = function( self, length, ply )
+        local ent = net.ReadEntity()
+        local modelPath = string.Trim(net.ReadString() or "")
+
+        if not self:Filter(ent, ply) then return end
+        ent = hg.RagdollOwner(ent) or ent
+        if not IsValid(ent) or not ent:IsPlayer() then return end
+
+        if modelPath == "" then
+            ply:ChatPrint("Model path is empty")
+            return
+        end
+
+        if not hg.Appearance or not hg.Appearance.SetCustomAvatarOverride then
+            ply:ChatPrint("Custom avatar override system not loaded")
+            return
+        end
+
+        local ok, reason = hg.Appearance.SetCustomAvatarOverride(ent:SteamID(), {
+            model = modelPath,
+            allowDonatorMenu = true,
+            lockModelSelection = true,
+            disableAppearance = true,
+            menuName = ent:Name() .. " Custom"
+        })
+
+        if not ok then
+            ply:ChatPrint("Failed: " .. tostring(reason or "unknown"))
+            return
+        end
+
+        local applied, applyReason = applyCustomModelNoAppearance(ent, modelPath)
+        if not applied then
+            ply:ChatPrint("Saved, but could not apply now: " .. tostring(applyReason or "unknown"))
+            return
+        end
+
+        ply:ChatPrint("Permanent custom model applied for " .. ent:Name())
+        ent:ChatPrint("An admin applied your permanent custom model.")
+    end
+} )
+
+properties.Add( "custom_model_unapply", {
+    MenuLabel = "Unapply Custom Model",
+    Order = 14,
+    MenuIcon = "icon16/user_delete.png",
+
+    Filter = check,
+    Action = function( self, ent )
+        Derma_Query(
+            "Remove permanent custom model and restore normal appearance menu usage?",
+            "Confirm",
+            "Yes",
+            function()
+                self:MsgStart()
+                    net.WriteEntity( ent )
+                self:MsgEnd()
+            end,
+            "No"
+        )
+    end,
+    Receive = function( self, length, ply )
+        local ent = net.ReadEntity()
+
+        if not self:Filter(ent, ply) then return end
+        ent = hg.RagdollOwner(ent) or ent
+        if not IsValid(ent) or not ent:IsPlayer() then return end
+
+        if not hg.Appearance or not hg.Appearance.RemoveCustomAvatarOverride then
+            ply:ChatPrint("Custom avatar override system not loaded")
+            return
+        end
+
+        local ok, reason = hg.Appearance.RemoveCustomAvatarOverride(ent:SteamID())
+        if not ok then
+            ply:ChatPrint("Failed: " .. tostring(reason or "unknown"))
+            return
+        end
+
+        if hg.Appearance.ApplyAppearance then
+            hg.Appearance.ApplyAppearance(ent, nil, nil, nil, true)
+        else
+            local appearance = hg.Appearance and hg.Appearance.GetRandomAppearance and hg.Appearance.GetRandomAppearance()
+            if appearance and hg.Appearance and hg.Appearance.ForceApplyAppearance then
+                hg.Appearance.ForceApplyAppearance(ent, appearance)
+            end
+        end
+
+        ply:ChatPrint("Permanent custom model removed for " .. ent:Name())
+        ent:ChatPrint("Your custom model override was removed by an admin.")
+    end
+} )
+
 local defaultinv = {
     Weapons = {},
     Ammo = {},
