@@ -87,6 +87,7 @@ surface.CreateFont("ZC_MM_Title", {
 -- local Title = markup.Parse("error")
 
 local Pluv = Material("pluv/pluvkid.jpg")
+local PauseLogo = Material("zcity/ui/pause_logo.png", "smooth")
 
 function PANEL:InitializeMarkup()
 	local mapname = game.GetMap()
@@ -142,7 +143,13 @@ function PANEL:Init()
             surface.DrawTexturedRect(0, ScreenScale(27), ScreenScale(35), ScreenScale(27))
         end
 
-        self.Title:Draw(ScreenScale(15), ScreenScale(50), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 255, TEXT_ALIGN_LEFT)
+        if PauseLogo and not PauseLogo:IsError() then
+            surface.SetDrawColor(color_white)
+            surface.SetMaterial(PauseLogo)
+            surface.DrawTexturedRect(ScreenScale(10), ScreenScale(35), ScreenScale(260), ScreenScale(90))
+        else
+            self.Title:Draw(ScreenScale(15), ScreenScale(50), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 255, TEXT_ALIGN_LEFT)
+        end
     end
 
     local zteam = vgui.Create("DLabel",lDock)
