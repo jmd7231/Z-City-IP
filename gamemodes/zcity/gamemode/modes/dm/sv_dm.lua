@@ -218,6 +218,33 @@ function MODE:RoundStart()
 end
 
 local cooldown = CurTime()
+local doorClasses = {
+	"func_door",
+	"func_door_rotating",
+	"prop_door_rotating"
+}
+
+local function ProcessEntityOutsideZone(ent, pos, radiussqr)
+	if not IsValid(ent) then return end
+	if pos:DistToSqr(ent:GetPos()) <= radiussqr then return end
+
+	if ent:IsPlayer() then
+		hg.LightStunPlayer(ent)
+		return
+	end
+
+	if hgIsDoor(ent) then
+		if not ent:GetNoDraw() then
+			hgBlastThatDoor(ent)
+		end
+		return
+	end
+
+	if not ent:IsNPC() and string.StartWith(ent:GetClass(), "prop_") and not hg.expItems[ent:GetModel()] then
+		MakeDissolver(ent, ent:GetPos(), 0)
+	end
+end
+
 hook.Add("Think","bober",function(ply)
 	local rnd = CurrentRound()
 	if not rnd or rnd.name != "dm" then return end
@@ -229,25 +256,18 @@ hook.Add("Think","bober",function(ply)
 	local radius = MODE.GetZoneRadius()
 	local radiussqr = radius * radius
 	
+	for i, ent in ipairs(player.GetAll()) do
+		ProcessEntityOutsideZone(ent, pos, radiussqr)
+	end
+
 	for i, ent in ents.Iterator() do
-		if pos:DistToSqr(ent:GetPos()) > radiussqr then
-			if ent:IsPlayer() then
-				hg.LightStunPlayer(ent)
-				
-				continue
-			end
+		if not ent:IsNPC() and not string.StartWith(ent:GetClass(), "prop_") then continue end
+		ProcessEntityOutsideZone(ent, pos, radiussqr)
+	end
 
-			if hgIsDoor(ent) then
-				if !ent:GetNoDraw() then
-					hgBlastThatDoor(ent)
-				end
-
-				continue
-			end
-			
-			if string.find(ent:GetClass(), "prop_") and !hg.expItems[ent:GetModel()] then
-				MakeDissolver(ent, ent:GetPos(), 0)
-			end
+	for i = 1, #doorClasses do
+		for _, ent in ipairs(ents.FindByClass(doorClasses[i])) do
+			ProcessEntityOutsideZone(ent, pos, radiussqr)
 		end
 	end
 end)
