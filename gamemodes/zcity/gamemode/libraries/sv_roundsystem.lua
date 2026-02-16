@@ -20,8 +20,16 @@ function zb:GetMode(round)
 	end
 end
 
+local hasChangeLevelTrigger = false
+
+local function RefreshChangeLevelStatus()
+	hasChangeLevelTrigger = IsValid(ents.FindByClass("trigger_changelevel")[1])
+end
+
+hook.Add("InitPostEntity", "zb_cache_changelevel_trigger", RefreshChangeLevelStatus)
+
 function CurrentRound()
-	if IsValid(ents.FindByClass( "trigger_changelevel" )[1]) then
+	if hasChangeLevelTrigger then
 		zb.nextround = "coop"
 		zb.CROUND = zb.CROUND or "coop"
 		return zb.modes["coop"]
@@ -39,7 +47,7 @@ function CurrentRound()
 end
 
 function NextRound(round)
-	if IsValid(ents.FindByClass( "trigger_changelevel" )[1]) then
+	if hasChangeLevelTrigger then
 		zb.nextround = "coop"
 	else
 		zb.nextround = round

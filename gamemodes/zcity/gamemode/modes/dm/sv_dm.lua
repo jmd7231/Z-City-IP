@@ -221,7 +221,11 @@ local cooldown = CurTime()
 local doorClasses = {
 	"func_door",
 	"func_door_rotating",
-	"prop_door_rotating"
+}
+
+local entityScanClasses = {
+	"npc_*",
+	"prop_*"
 }
 
 local function ProcessEntityOutsideZone(ent, pos, radiussqr)
@@ -245,6 +249,12 @@ local function ProcessEntityOutsideZone(ent, pos, radiussqr)
 	end
 end
 
+local function ProcessEntityClassOutsideZone(className, pos, radiussqr)
+	for _, ent in ipairs(ents.FindByClass(className)) do
+		ProcessEntityOutsideZone(ent, pos, radiussqr)
+	end
+end
+
 hook.Add("Think","bober",function(ply)
 	local rnd = CurrentRound()
 	if not rnd or rnd.name != "dm" then return end
@@ -260,15 +270,12 @@ hook.Add("Think","bober",function(ply)
 		ProcessEntityOutsideZone(ent, pos, radiussqr)
 	end
 
-	for i, ent in ents.Iterator() do
-		if not ent:IsNPC() and not string.StartWith(ent:GetClass(), "prop_") then continue end
-		ProcessEntityOutsideZone(ent, pos, radiussqr)
+	for i = 1, #entityScanClasses do
+		ProcessEntityClassOutsideZone(entityScanClasses[i], pos, radiussqr)
 	end
 
 	for i = 1, #doorClasses do
-		for _, ent in ipairs(ents.FindByClass(doorClasses[i])) do
-			ProcessEntityOutsideZone(ent, pos, radiussqr)
-		end
+		ProcessEntityClassOutsideZone(doorClasses[i], pos, radiussqr)
 	end
 end)
 
