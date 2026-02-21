@@ -6,6 +6,10 @@ util.AddNetworkString("ZB_RockTheVote_vote")
 util.AddNetworkString("ZB_RockTheVote_voteCLreg")
 util.AddNetworkString("ZB_RockTheVote_end")
 zb = zb or {}
+local function UseShoutVote()
+    return SHOUT and SHOUT.Settings and SHOUT.Settings.EnableRTV and SHOUT.StartNewVote and SHOUT.PlayerRTV
+end
+
 local cooldown = {}
 local votes = {}
 zb.votestarted = false
@@ -171,6 +175,11 @@ end)
 local endStarted = false
 
 function zb.EndRTV()
+    if UseShoutVote() then
+        SHOUT.EndVote()
+        return
+    end
+
     if endStarted then return end
 
     local winmap = table.GetWinningKey(votes)
@@ -298,6 +307,12 @@ local function getMapWeight(map)
 end
 
 function zb.StartRTV(time)
+    if UseShoutVote() then
+        if SHOUT.InProgress then return end
+        SHOUT.StartNewVote()
+        return
+    end
+
     if zb.votestarted then return end
     
     getmaps()
@@ -472,6 +487,16 @@ end
 
 -- ДЕКА КАК ТЫ ТАК СМОГ СДЕЛАТЬ, ЧТО ОНО СРЕТ БЕЗ ОСТНАОВКИ МНЕ ПРИНТОМ, ЧТО РТВ СОСТОИТСЯ, ГДЕ ТЫ НАСРАЛ 
 function zb.CheckRTVVotes(needPrint)
+    if UseShoutVote() then
+        if SHOUT.VoteRocked and needPrint then
+            for _, v in player.Iterator() do
+                v:ChatPrint("Enough votes to change the map. RTV will be on next round.")
+            end
+        end
+
+        return SHOUT.VoteRocked == true
+    end
+
     local votesNeeded = math.ceil(#player.GetAll() / 2)
     local votes = table.Count(rtvVotes)
     
@@ -489,6 +514,11 @@ function zb.CheckRTVVotes(needPrint)
 end
 
 COMMANDS.rtv = {function(ply, args)
+    if UseShoutVote() then
+        SHOUT.PlayerRTV(ply)
+        return
+    end
+
     --print(zb.votestarted)
 	if zb.votestarted then
 		zb.RTVMenu(ply)
