@@ -1133,7 +1133,9 @@ if CLIENT then
 		self.visState = state
 
 		-- Update our animation as soon as possible for visual consistency
-		self:AnimationThink()
+		if self.AnimationThink then
+			self:AnimationThink()
+		end
 	end
 
 	--[[-------------------------------------------------------------------------
@@ -1341,7 +1343,9 @@ if CLIENT then
 		end
 
 		if curTime >= self.nextAnimationThink then
-			self:AnimationThink()
+			if self.AnimationThink then
+				self:AnimationThink()
+			end
 			self.nextAnimationThink = curTime + vFireAnimationThinkTickRate + throttleAdd
 		end
 
