@@ -1595,6 +1595,17 @@ hook.Add("Ragdoll Collide", "organism", function(ragdoll, data)
 	if data.DeltaTime < 0.25 then return end
 	if not ragdoll:IsRagdoll() then return end
 	if data.HitEntity:IsPlayerHolding() then return end
+
+	local hitEnt = data.HitEntity
+	if IsValid(hitEnt) then
+		local class = hitEnt:GetClass()
+		if class == "prop_door_rotating" or class == "func_door_rotating" or class == "func_door" then
+			ragdoll._nextDoorCrushDamage = ragdoll._nextDoorCrushDamage or 0
+			if ragdoll._nextDoorCrushDamage > CurTime() then return end
+			ragdoll._nextDoorCrushDamage = CurTime() + 0.25
+		end
+	end
+
 	velocityDamage(ragdoll, data)
 	--if data.Speed < 250 then return end
 	--if data.HitEntity:IsPlayer() then hg.Fake(data.HitEntity) end
