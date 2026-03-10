@@ -4,6 +4,7 @@ MODE.PrintName = "Riot"
 MODE.OverideSpawnPos = true
 MODE.LootSpawn = false
 MODE.ForBigMaps = false
+MODE.ROUND_TIME = 240
 MODE.Chance = 0.03
 
 local riotWeapons = {
@@ -92,7 +93,12 @@ end
 
 function MODE:ShouldRoundEnd()
     local endround, winner = zb:CheckWinner(self:CheckAlivePlayers())
-    return endround
+    return endround or boringround
+end
+
+function MODE:BoringRoundFunction()		
+	timer.Simple(2, function()
+	end)
 end
 
 function MODE:RoundStart()

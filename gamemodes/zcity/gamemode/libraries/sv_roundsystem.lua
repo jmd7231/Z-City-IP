@@ -408,6 +408,7 @@ function zb.WeightedChanceMode(modes_chances)
 		return "hmcd"
 	end
 end
+
 function zb.GetWorldSize()
 	/*
 	local world = game.GetWorld()
