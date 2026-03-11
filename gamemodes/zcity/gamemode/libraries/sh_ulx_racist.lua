@@ -1,6 +1,6 @@
 if not ulx then return end
 
-local CATEGORY_NAME = "Punishment"
+local CATEGORY_NAME = "ZCity"
 local RACIST_NETVAR = "zb_ulx_racist"
 
 local function IsValidTarget(target_ply)
