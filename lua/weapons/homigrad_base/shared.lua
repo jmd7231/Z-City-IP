@@ -287,14 +287,17 @@ function SWEP:OnRemove()
 	end
 end
 
+local hg_aimtoshoot = ConVarExists("hg_aimtoshoot") and GetConVar("hg_aimtoshoot") or CreateConVar("hg_aimtoshoot", 0, {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Toggle DarkRP-like shooting system (aim to shoot)", 0, 1)
+
 local owner
 local CurTime = CurTime
 function SWEP:IsZoom()
 	local owner = self:GetOwner()
 	--print( (owner.armors and (hg.armor.head[owner.armors["head"]] and not hg.armor.head[owner.armors["head"]].cantsight)))
 	return self:CanUse() and
+		(!hg_aimtoshoot:GetBool() or self:GetNWBool("aiming")) and
 		(self:GetButtstockAttack() - CurTime() < -1) and 
-		(self:GetOwner():IsPlayer() and self:KeyDown(IN_ATTACK2) and not self:KeyDown(IN_SPEED)) and
+		(self:GetOwner():IsPlayer() and self:KeyDown(IN_ATTACK2) and not self:IsSprinting()) and
 		!(self:IsSprinting() and !IsValid(owner.FakeRagdoll)) and
 		((IsValid(owner.FakeRagdoll) and (self:KeyDown(IN_USE) or hg.RagdollCombatInUse(owner))) or
 		(owner:IsOnGround() or owner:InVehicle())) and 
@@ -314,7 +317,11 @@ end
 
 function SWEP:IsSprinting()
 	local ply = self:GetOwner()
-	return not ply:IsNPC() and self:KeyDown(IN_SPEED) --[[and not (self:KeyDown(IN_ATTACK2) and not self:KeyDown(IN_WALK))]] and ply:GetVelocity():LengthSqr() > 170 * 170 and not IsValid(ply.FakeRagdoll)
+	if hg_aimtoshoot:GetBool() then
+		return not ply:IsNPC() and (self:KeyDown(IN_SPEED) and ply:GetVelocity():LengthSqr() > 28900) or not self:KeyDown(IN_ATTACK2) and not IsValid(ply.FakeRagdoll)
+	else
+		return not ply:IsNPC() and self:KeyDown(IN_SPEED) and ply:GetVelocity():LengthSqr() > 28900 and not IsValid(ply.FakeRagdoll)
+	end
 end
 
 function SWEP:IsLocal()
@@ -328,6 +335,8 @@ end
 local hg_quietshots = GetConVar("hg_quietshots") or CreateClientConVar("hg_quietshots", "0", true, false, "Toggle quieter gun sounds", 0, 1)
 local hg_gunshotvolume = GetConVar("hg_gunshotvolume") or CreateClientConVar("hg_gunshotvolume", "1", true, false, "Modify volume of gun sounds", 0, 1)
 local hg_oldsights = CreateConVar("hg_oldsights", "0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Disable camera wobble when aiming")
+local hg_coolcamera = ConVarExists("hg_coolcamera") and GetConVar("hg_coolcamera") or CreateConVar("hg_coolcamera", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement", 0, 5)
+local hg_coolcameralerpmult = ConVarExists("hg_coolcameralerpmult") and GetConVar("hg_coolcameralerpmult") or CreateConVar("hg_coolcameralerpmult", 1, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement lerp multiplier", 0, 5)
 
 if CLIENT then
 	EmitSound = hg.EmitSound
@@ -667,9 +676,12 @@ function SWEP:EmitShoot()
 	local nearDist = (GetViewEntity() == ply or GetViewEntity():GetPos():Distance( self:GetPos() ) < 150)
 
 	if GetGlobalBool("hg_shoot_tinnitus", false) and nearDist and !self.Supressor and !hadEarProtection then
-		lply.TinnitusFactor = (lply.TinnitusFactor or 0) + ( (self.Primary.Force * (self.NumBullet or 1) ) / 3) + insideVal
-		if lply.TinnitusFactor > 32 then
-			lply:AddTinnitus(lply.TinnitusFactor / 100)
+		local result = hook.Run("ZC_DisableShootTinnitus",lply,insideVal)
+		if !result then
+			lply.TinnitusFactor = (lply.TinnitusFactor or 0) + ( (self.Primary.Force * (self.NumBullet or 1) ) / 3) + insideVal
+			if lply.TinnitusFactor > 32 then
+				lply:AddTinnitus(lply.TinnitusFactor / 100)
+			end
 		end
 	end
 
@@ -1103,8 +1115,11 @@ if SERVER then
 	end)
 end
 
+local hg_slings = ConVarExists("hg_slings") and GetConVar("hg_slings") or CreateConVar("hg_slings", 0, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Toggle sling system", 0, 1)
+
 local vpang1, vpang2 = (Angle(1,-1.5,-1.8) / 1.5), (Angle(-1,1.5,1.8) / 1.5)
 local bashvpang = Angle(-10, 0, 0)
+local gamemod = engine.ActiveGamemode()
 function SWEP:CoreStep()
 	local owner = self:GetOwner()
 	local actwep = owner.GetActiveWeapon and owner:GetActiveWeapon() or nil
@@ -1190,17 +1205,16 @@ function SWEP:CoreStep()
 		--self:WorldModel_Transform()
 	end]]
 
-	--[[if owner:IsPlayer() then
+	if owner:IsPlayer() and hg_slings:GetBool() and (zb.CROUND and zb.CROUND == "hmcd" or gamemod == "sandbox") then
 		local inv = owner:GetNetVar("Inventory")
-		
 		local noSling = inv and (not inv["Weapons"] or not inv["Weapons"]["hg_sling"])
-		
+
 		if not noSling then owner.holdingWeapon = nil end
 
 		if not self.shouldntDrawHolstered and noSling then
 			owner.holdingWeapon = owner:GetActiveWeapon() ~= self and self or nil
 		end
-	end--]]
+	end
 	
 	if not self.reload and self.RevertMag then
 		self:RevertMag()
@@ -1230,13 +1244,15 @@ function SWEP:CoreStep()
 	if SERVER and not owner:IsNPC() and owner.organism and (not owner.organism.canmove or ((owner.organism.stun - CurTime()) > 0) or (owner.organism.larm == 1 and owner.organism.rarm == 1)) and IsValid(actwep) and self == actwep then
 		self:RemoveFake()
 		
-		local inv = owner:GetNetVar("Inventory",{})
-		if not (inv["Weapons"] and inv["Weapons"]["hg_sling"] and not self:IsPistolHoldType()) then
-			//hg.drop(owner, self)
-			hook.Run("PlayerDropWeapon", owner)
-		else
-			hook.Run("PlayerDropWeapon", owner)
-			//owner:SetActiveWeapon(owner:GetWeapon("weapon_hands_sh"))
+		if hg_slings:GetBool() and (zb.CROUND and zb.CROUND == "hmcd" or gamemod == "sandbox") then
+			local inv = owner:GetNetVar("Inventory",{})
+			if not (inv["Weapons"] and inv["Weapons"]["hg_sling"] and not self:IsPistolHoldType()) then
+				hg.drop(owner, self)
+				hook.Run("PlayerDropWeapon", owner)
+			else
+				hook.Run("PlayerDropWeapon", owner)
+				owner:SetActiveWeapon(owner:GetWeapon("weapon_hands_sh"))
+			end
 		end
 
 		return
@@ -1302,11 +1318,24 @@ function SWEP:CoreStep()
 					end
 				end
 
-				owner.organism.stamina.subadd = owner.organism.stamina.subadd + 6 * self.weight
+				owner.organism.stamina.subadd = owner.organism.stamina.subadd + 3 * self.weight
 
 				owner:LagCompensation(false)
 			//end)
 		end
+	end
+
+	if !self:KeyDown(IN_ATTACK2) then
+		self:SetNWBool("aiming", false)
+	end
+
+	if self:KeyDown(IN_SPEED) then
+		if !self.aiminghuuuy then
+			self.aiminghuuuy = true
+			self:SetNWBool("aiming", !self:GetNWBool("aiming"))
+		end
+	else
+		self.aiminghuuuy = nil
 	end
 
 	if self:IsClient() then self:Step_Spray(time, dtime) end
@@ -1498,7 +1527,7 @@ hg.postureFunctions2 = {
 		self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - 5 + (pistolRun and (isLocal and (epicRunY or (running and 6 or 4)) or 8 + (ply:GetNWFloat("InLegKick", 0) and -5 or 0)) or (isLocal and 8 or 2 + (ply:GetNW2Float("InLegKick", 0) and 8 or 0)) ) + 3 * math.Clamp(-ply:EyeAngles()[1] / 20, self:IsPistolHoldType() and -2 or -2, 0)
 		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 3 + (pistolRun and (isLocal and (epicRunX or 2) or 0) or 0)
 		
-		if not self:IsPistolHoldType() then
+		if not pistolRun then
 			self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + -9
 			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + -6
 			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + -3
@@ -1680,14 +1709,14 @@ function SWEP:GetAdditionalValues()
 
 	--self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - ((ply.lean or 0) * 2)
 	
-	local val = math.Clamp((self.deploy and ((self.deploy - CurTime()) * 10) or self.holster and (((self.CooldownDeploy / self.Ergonomics) - (self.holster - CurTime())) * 10) or 0) / (self.CooldownDeploy / self.Ergonomics),0,10)
-	--val = math.abs(math.sin(CurTime()))
-	--self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] - val * 1.5
-	--self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - val * 2 * (self:IsPistolHoldType() and 0.5 or 0.75)
+	local val = math.Clamp((self.deploy and ((self.deploy - CurTime()) * 10) --[[or self.holster and (((self.CooldownDeploy / self.Ergonomics) - (self.holster - CurTime())) * 10)]] or 0) / (self.CooldownDeploy / self.Ergonomics),0,10)
+
+	self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] - val * 1.5
+	self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - val * 2 * (self:IsPistolHoldType() and 0.5 or 0.75)
 	
-	--self.AdditionalAngPreLerp[1] = self.AdditionalAngPreLerp[1] + val / 10 * 40
-	--self.AdditionalAngPreLerp[3] = self.AdditionalAngPreLerp[3] + val / 10 * -90
-	--self.AdditionalAngPreLerp[2] = self.AdditionalAngPreLerp[2] + val / 10 * -90
+	self.AdditionalAngPreLerp[1] = self.AdditionalAngPreLerp[1] + val / 10 * 40
+	self.AdditionalAngPreLerp[3] = self.AdditionalAngPreLerp[3] + val / 10 * -90
+	self.AdditionalAngPreLerp[2] = self.AdditionalAngPreLerp[2] + val / 10 * -90
 
 	local animpos = self:GetNWFloat("addAttachment")
 	animpos = 1 - math.Clamp((animpos + 1 - CurTime()) / 1,0,1)
@@ -1804,12 +1833,13 @@ function SWEP:GetAdditionalValues()
 	
 	local pranktime = CurTime() / 2
 	local vellen = (ply:InVehicle()) and 0 or hg.GetCurrentCharacter(ply):GetVelocity():Length()
-	self.walkinglerp = Lerp(hg.lerpFrameTime(0.001,dtime), self.walkinglerp or 0, vellen)
+	self.walkinglerp = math.Round(vellen)
+	
 	self.huytime = self.huytime or 0
 	local walk = math.Clamp(self.walkinglerp / 100, 0, 1)
 	
-	self.huytime = self.huytime + walk * dtime * 6.6 * (ply:OnGround() and 1 or 0.1)
-
+	self.huytime = CurTime() * 6.6--self.huytime + walk * dtime * 6.6 * (ply:OnGround() and 1 or 0.1)
+	
 	--ply.oldposture = ply.posture
 	if self:IsSprinting() then
 		--ply.posture = 1
@@ -1889,7 +1919,7 @@ function SWEP:GetAdditionalValues()
 			//dot = dot < -0.5 and dot + 0.5 or 0
 			//dot = dot * 3
 
-			self.AdditionalPos2[1] = self.AdditionalPos2[1] + dot * -4
+			self.AdditionalPos2[1] = self.AdditionalPos2[1] + dot * -2
 		end
 	end
 
@@ -2034,7 +2064,7 @@ function SWEP:SetHandPos(noset)
 	end
 	
 	if (ent ~= ply and ent ~= ply.OldRagdoll and !hg.RagdollCombatInUse(ply)) then
-		self.lhandik = self.lhandik and !(hg.KeyDown(ply, IN_FORWARD + IN_BACK) and !self.reload and !ply:InVehicle())
+		self.lhandik = self.lhandik and !((hg.KeyDown(ply, IN_FORWARD + IN_BACK) or ent:GetManipulateBoneAngles(ent:LookupBone("ValveBiped.Bip01_L_Finger11"))[2] < 0) and !self.reload and !ply:InVehicle())
 	end
 
 	--ply:SetIK(false)
@@ -2061,8 +2091,8 @@ function SWEP:SetHandPos(noset)
 	if not rhmat or not lhmat then return end
 
 	local atk = hg.KeyDown(ply, IN_ATTACK)
-	self.anglefinger[2] = LerpFT(atk and 1 or 0.1, self.anglefinger[2], atk and 45 or 0)
-
+	self.anglefinger[2] = LerpFT(atk and 1 or 0.1, self.anglefinger[2], self:CanUse() and !(self:KeyDown(IN_USE) and !IsValid(ply.FakeRagdoll)) and atk and 30 or 0)
+	self.anglefinger[1] = self.anglefinger[2] * 0.3
 	if !should then
 		local vec1, ang1 = -(-self.handPos), -(-self.handAng)
 
@@ -2325,9 +2355,9 @@ function SWEP:PlayAnim(anim, data, cycling, callback, reverse, sendtoclient)
         self.callback = callback
     end
 
-	if self.AnimsEvents and self.AnimsEvents[self.seq] then
+	if self.AnimsEvents and (self.AnimsEvents[anim] or self.AnimsEvents[self.seq]) then
 		local Time = time
-		for k,v in pairs(self.AnimsEvents[self.seq]) do
+		for k,v in pairs(self.AnimsEvents[anim] or self.AnimsEvents[self.seq]) do
 			self.VM_TimerEvents = self.VM_TimerEvents or {}
 
 			local TimerName = "VM_Events_ZC-Base" .. self:EntIndex() .. self.seq .. k
@@ -2525,8 +2555,22 @@ hook.Add("HG_MovementCalc_2", "moveWithWeapon", function(mul, ply, cmd, mv)
                 return
 			end
 
-            mv:SetSideSpeed((wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Right()) * 10)
-            mv:SetForwardSpeed((wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Forward()) * 10)
+            --cmd:SetSideMove((wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Right()) * 10)
+            --cmd:SetForwardMove((wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Forward()) * 10)
+			
+			local right = (wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Right())
+			right = right - math.Clamp(right, -0, 0)
+			right = right * (IsValid(ply.FakeRagdoll) and 0 or 1)
+			local forward = (wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Forward())
+			forward = forward - math.Clamp(forward, -10, (IsValid(ply.FakeRagdoll) and 0 or 10)) - 0
+			local veca = ply:EyeAngles():Right() * right * 1
+				+ ply:EyeAngles():Forward() * forward * 1
+			
+			if !IsValid(ply.FakeRagdoll) then
+				ply:SetVelocity(veca)
+			else
+				wep:SetNWVector("RestPos", wep:GetNWVector("RestPos") - veca * 0.1)
+			end
 			
 			if restpos[3] < ply:EyePos()[3] - 40 then
 				--mv:AddKey(IN_DUCK)

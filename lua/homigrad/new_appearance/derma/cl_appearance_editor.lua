@@ -118,7 +118,7 @@ local function CreateStyledAccessoryMenu(parent, title)
     menu:SetPos(cx,cy)
     menu:MakePopup()
     menu:SetDraggable(false)
-    menu:ShowCloseButton(true)
+    menu:ShowCloseButton(false)
     
     menu.CurrentPreviewIcon = nil  
     

@@ -130,7 +130,7 @@ util.AddNetworkString("PunishLightningEffect")
 		ply:DrawShadow(!ply.cloak)
 		ply:SetCollisionGroup(ply.cloak and COLLISION_GROUP_DEBRIS or COLLISION_GROUP_PLAYER)
 		ply:RemoveAllDecals()
-		ply:Notify(ply.cloak and "now i'm invisible..." or "now i'm visible")
+		ply:Notify(ply.cloak and "now i'm invisible..." or "now i'm visible") -- walking by the wall
 		return
     end,1}
 
