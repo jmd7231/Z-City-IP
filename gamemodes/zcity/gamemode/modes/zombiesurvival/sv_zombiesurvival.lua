@@ -4,7 +4,10 @@ util.AddNetworkString("ZS_RoundStart")
 util.AddNetworkString("ZS_RoundEnd")
 
 MODE.ZombieClass = "headcrabzombie"
-MODE.HeadcrabAmount = 10
+MODE.HeadcrabAmount = 25 -- startup burst
+MODE.HeadcrabSpawnPerTick = 10
+MODE.HeadcrabSpawnInterval = 1
+MODE.HeadcrabMaxAlive = 500
 MODE.HeadcrabSpawnClasses = {
 	"info_player_start",
 	"info_player_human",
@@ -15,6 +18,7 @@ MODE.HeadcrabSpawnClasses = {
 
 function MODE:Intermission()
 	game.CleanUpMap()
+	timer.Remove("ZS_HeadcrabSpawner")
 
 	for _, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
@@ -54,21 +58,7 @@ function MODE:CanLaunch()
 	return active >= 3
 end
 
-function MODE:RoundStart()
-	self:SpawnAmbientHeadcrabs()
-	net.Start("ZS_RoundStart")
-	net.Broadcast()
-end
-
-function MODE:SpawnAmbientHeadcrabs()
-	self.SpawnedZombieHeadcrabs = self.SpawnedZombieHeadcrabs or {}
-	for _, ent in ipairs(self.SpawnedZombieHeadcrabs) do
-		if IsValid(ent) then
-			ent:Remove()
-		end
-	end
-	self.SpawnedZombieHeadcrabs = {}
-
+function MODE:GetHeadcrabSpawnPoints()
 	local spawnPoints = {}
 	for _, className in ipairs(self.HeadcrabSpawnClasses) do
 		for _, ent in ipairs(ents.FindByClass(className)) do
@@ -76,10 +66,36 @@ function MODE:SpawnAmbientHeadcrabs()
 		end
 	end
 
-	if #spawnPoints == 0 then return end
+	return spawnPoints
+end
 
-	for _ = 1, math.min(self.HeadcrabAmount, #spawnPoints) do
-		local spawnEnt = table.remove(spawnPoints, math.random(#spawnPoints))
+function MODE:GetAliveHeadcrabCount()
+	self.SpawnedZombieHeadcrabs = self.SpawnedZombieHeadcrabs or {}
+	local alive = {}
+
+	for _, ent in ipairs(self.SpawnedZombieHeadcrabs) do
+		if IsValid(ent) and ent:GetClass() == "npc_headcrab" and ent:Health() > 0 then
+			alive[#alive + 1] = ent
+		end
+	end
+
+	self.SpawnedZombieHeadcrabs = alive
+	return #alive
+end
+
+function MODE:SpawnAmbientHeadcrabs(spawnCount)
+	local spawnPoints = self:GetHeadcrabSpawnPoints()
+	if #spawnPoints == 0 then return 0 end
+
+	local aliveCount = self:GetAliveHeadcrabCount()
+	local freeSlots = math.max((self.HeadcrabMaxAlive or 500) - aliveCount, 0)
+	if freeSlots <= 0 then return 0 end
+
+	local toSpawn = math.min(spawnCount or self.HeadcrabAmount, freeSlots)
+	local spawned = 0
+
+	for _ = 1, toSpawn do
+		local spawnEnt = spawnPoints[math.random(#spawnPoints)]
 		if not IsValid(spawnEnt) then continue end
 
 		local headcrab = ents.Create("npc_headcrab")
@@ -90,7 +106,31 @@ function MODE:SpawnAmbientHeadcrabs()
 		headcrab:Spawn()
 		headcrab:Activate()
 		self.SpawnedZombieHeadcrabs[#self.SpawnedZombieHeadcrabs + 1] = headcrab
+		spawned = spawned + 1
 	end
+
+	return spawned
+end
+
+function MODE:StartHeadcrabSpawner()
+	timer.Remove("ZS_HeadcrabSpawner")
+	timer.Create("ZS_HeadcrabSpawner", self.HeadcrabSpawnInterval, 0, function()
+		if CurrentRound().name ~= "zombiesurvival" then
+			timer.Remove("ZS_HeadcrabSpawner")
+			return
+		end
+
+		MODE:SpawnAmbientHeadcrabs(MODE.HeadcrabSpawnPerTick)
+	end)
+end
+
+function MODE:RoundStart()
+	self.SpawnedZombieHeadcrabs = {}
+	self:SpawnAmbientHeadcrabs(self.HeadcrabAmount)
+	self:StartHeadcrabSpawner()
+
+	net.Start("ZS_RoundStart")
+	net.Broadcast()
 end
 
 function MODE:MakeZombie(ply, isAlpha)
@@ -186,6 +226,8 @@ function MODE:ShouldRoundEnd()
 end
 
 function MODE:EndRound()
+	timer.Remove("ZS_HeadcrabSpawner")
+
 	if self.SpawnedZombieHeadcrabs then
 		for _, ent in ipairs(self.SpawnedZombieHeadcrabs) do
 			if IsValid(ent) then
