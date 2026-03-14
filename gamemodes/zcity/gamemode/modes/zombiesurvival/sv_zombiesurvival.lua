@@ -4,6 +4,7 @@ util.AddNetworkString("ZS_RoundStart")
 util.AddNetworkString("ZS_RoundEnd")
 
 MODE.ZombieClass = "headcrabzombie"
+MODE.AlphaModel = "models/zombie/classic.mdl"
 MODE.HeadcrabAmount = 12 -- initial wave
 MODE.HeadcrabSpawnPerTick = 12
 MODE.HeadcrabSpawnInterval = 10
@@ -81,6 +82,13 @@ function MODE:GetHeadcrabSpawnPoints()
 	for _, className in ipairs(self.HeadcrabSpawnClasses) do
 		for _, ent in ipairs(ents.FindByClass(className)) do
 			spawnPoints[#spawnPoints + 1] = ent
+		end
+	end
+
+	if navmesh and navmesh.GetAllNavAreas then
+		for _, area in ipairs(navmesh.GetAllNavAreas()) do
+			local center = area:GetCenter()
+			spawnPoints[#spawnPoints + 1] = center + Vector(0, 0, 8)
 		end
 	end
 
@@ -175,12 +183,20 @@ function MODE:SpawnAmbientHeadcrabs(spawnCount)
 
 	for _ = 1, toSpawn do
 		local spawnEnt = spawnPoints[math.random(#spawnPoints)]
-		if not IsValid(spawnEnt) then continue end
+
+		local spawnPos
+		if isvector(spawnEnt) then
+			spawnPos = spawnEnt
+		elseif IsValid(spawnEnt) then
+			spawnPos = spawnEnt:GetPos() + Vector(0, 0, 6)
+		end
+
+		if not spawnPos then continue end
 
 		local headcrab = ents.Create("npc_headcrab")
 		if not IsValid(headcrab) then continue end
 
-		headcrab:SetPos(spawnEnt:GetPos() + Vector(0, 0, 6))
+		headcrab:SetPos(spawnPos + VectorRand(-64, 64) + Vector(0, 0, 4))
 		headcrab:SetAngles(Angle(0, math.random(0, 359), 0))
 		headcrab:Spawn()
 		headcrab:Activate()
@@ -230,6 +246,10 @@ function MODE:MakeZombie(ply, isAlpha)
 	ply.ZSIsZombie = true
 	ply.ZSIsAlpha = isAlpha and true or false
 	ply:SetNetVar("flashlight", false)
+
+	if isAlpha and MODE.AlphaModel then
+		ply:SetModel(MODE.AlphaModel)
+	end
 
 	if isAlpha then
 		zb.GiveRole(ply, "Zombie Alpha", Color(130, 220, 90))
