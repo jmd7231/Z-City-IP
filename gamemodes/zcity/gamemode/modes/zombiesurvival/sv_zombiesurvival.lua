@@ -143,6 +143,17 @@ function MODE:GiveZombieAttackSWEP(ply)
 	end
 end
 
+function MODE:EnsureZombieLoadout(ply)
+	if not IsValid(ply) then return end
+	if not ply.ZSIsZombie then return end
+
+	self:GiveZombieAttackSWEP(ply)
+
+	if ply.ZSIsAlpha then
+		self:RefreshHeadcrabRelationships()
+	end
+end
+
 function MODE:RefreshHeadcrabRelationships()
 	self.SpawnedZombieHeadcrabs = self.SpawnedZombieHeadcrabs or {}
 
@@ -211,7 +222,7 @@ function MODE:MakeZombie(ply, isAlpha)
 	self:GiveZombieAttackSWEP(ply)
 	timer.Simple(0, function()
 		if IsValid(ply) and ply.ZSIsZombie then
-			MODE:GiveZombieAttackSWEP(ply)
+			MODE:EnsureZombieLoadout(ply)
 		end
 	end)
 	ply.isTraitor = true
@@ -222,7 +233,7 @@ function MODE:MakeZombie(ply, isAlpha)
 
 	if isAlpha then
 		zb.GiveRole(ply, "Zombie Alpha", Color(130, 220, 90))
-		self:RefreshHeadcrabRelationships()
+		self:EnsureZombieLoadout(ply)
 	else
 		zb.GiveRole(ply, "Zombie", Color(100, 170, 70))
 	end
@@ -414,10 +425,26 @@ hook.Add("EntityTakeDamage", "ZS_BlockHeadcrabDamageToAlpha", function(target, d
 	if not target.ZSIsAlpha then return end
 
 	local attacker = dmginfo:GetAttacker()
-	if not IsValid(attacker) or not attacker:IsNPC() then return end
-	if not string.StartWith(attacker:GetClass(), "npc_headcrab") then return end
+	local inflictor = dmginfo:GetInflictor()
+	local attackerClass = IsValid(attacker) and attacker:GetClass() or ""
+	local inflictorClass = IsValid(inflictor) and inflictor:GetClass() or ""
+
+	if (not string.StartWith(attackerClass, "npc_headcrab")) and (not string.StartWith(inflictorClass, "npc_headcrab")) then
+		return
+	end
 
 	dmginfo:SetDamage(0)
 	dmginfo:ScaleDamage(0)
 	return true
+end)
+
+hook.Add("PlayerSpawn", "ZS_EnsureZombieSWEPOnSpawn", function(ply)
+	if CurrentRound().name ~= "zombiesurvival" then return end
+	if not IsValid(ply) or not ply.ZSIsZombie then return end
+
+	timer.Simple(0, function()
+		if IsValid(ply) and CurrentRound().name == "zombiesurvival" then
+			MODE:EnsureZombieLoadout(ply)
+		end
+	end)
 end)
