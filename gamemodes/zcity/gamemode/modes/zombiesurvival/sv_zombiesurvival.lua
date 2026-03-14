@@ -4,9 +4,9 @@ util.AddNetworkString("ZS_RoundStart")
 util.AddNetworkString("ZS_RoundEnd")
 
 MODE.ZombieClass = "headcrabzombie"
-MODE.HeadcrabAmount = 25 -- startup burst
-MODE.HeadcrabSpawnPerTick = 10
-MODE.HeadcrabSpawnInterval = 1
+MODE.HeadcrabAmount = 12 -- initial wave
+MODE.HeadcrabSpawnPerTick = 12
+MODE.HeadcrabSpawnInterval = 10
 MODE.HeadcrabMaxAlive = 500
 MODE.HeadcrabSpawnClasses = {
 	"info_player_start",
