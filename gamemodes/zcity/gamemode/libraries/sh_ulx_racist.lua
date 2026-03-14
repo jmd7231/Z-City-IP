@@ -92,7 +92,37 @@ if SERVER then
     end
 
     local function IsRacist(target_ply)
-        return IsValidTarget(target_ply) and target_ply:GetNWBool(RACIST_NETVAR, false)
+        if not IsValidTarget(target_ply) then return false end
+
+        if target_ply:GetNWBool(RACIST_NETVAR, false) then
+            return true
+        end
+
+        local storageKeys = GetTargetStorageKeys(target_ply)
+        for _, storageKey in ipairs(storageKeys) do
+            if RacistSteamIDs[storageKey] then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    local function RefreshRacistStateFromStorage(target_ply)
+        if not IsValidTarget(target_ply) then return false end
+
+        local state = false
+        local storageKeys = GetTargetStorageKeys(target_ply)
+
+        for _, storageKey in ipairs(storageKeys) do
+            if RacistSteamIDs[storageKey] then
+                state = true
+                break
+            end
+        end
+
+        target_ply:SetNWBool(RACIST_NETVAR, state)
+        return state
     end
 
     local function ApplyRacistRestrictions(target_ply)
@@ -157,15 +187,11 @@ if SERVER then
     unracist:help("Removes ulx racist restrictions from a player.")
 
     hook.Add("PlayerInitialSpawn", "ZB_ULXRacist_ApplyPersistentState", function(ply)
-        local storageKeys = GetTargetStorageKeys(ply)
-        if #storageKeys == 0 then return end
+        RefreshRacistStateFromStorage(ply)
+    end)
 
-        for _, storageKey in ipairs(storageKeys) do
-            if RacistSteamIDs[storageKey] then
-                ply:SetNWBool(RACIST_NETVAR, true)
-                break
-            end
-        end
+    hook.Add("PlayerAuthed", "ZB_ULXRacist_ApplyPersistentStateAuthed", function(ply)
+        RefreshRacistStateFromStorage(ply)
     end)
 
     hook.Add("PlayerSay", "ZB_ULXRacist_GagChat", function(ply, text)
@@ -199,6 +225,10 @@ if SERVER then
     end)
 
     hook.Add("PlayerSpawn", "ZB_ULXRacist_StripOnSpawn", function(ply)
+        if IsRacist(ply) then
+            ply:SetNWBool(RACIST_NETVAR, true)
+        end
+
         ApplyRacistRestrictions(ply)
     end)
 
