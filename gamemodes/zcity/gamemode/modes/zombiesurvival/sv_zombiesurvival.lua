@@ -31,6 +31,7 @@ function MODE:Intermission()
 		ply.ZSIsZombie = false
 		ply.ZSIsAlpha = false
 		ply.ZSTurning = nil
+		ply.ZSHeadcrabThreatUntil = nil
 	end
 
 	local candidates = {}
@@ -304,6 +305,10 @@ function MODE:EndRound()
 
 	self.ZSWinner = nil
 	self.RoundStartGraceEnd = nil
+
+	for _, ply in player.Iterator() do
+		ply.ZSHeadcrabThreatUntil = nil
+	end
 end
 
 function MODE:StartZombieTurn(victim)
@@ -348,6 +353,30 @@ end)
 hook.Add("PlayerCanSuicide", "ZS_BlockKillbindDuringTurn", function(ply)
 	if CurrentRound().name ~= "zombiesurvival" then return end
 	if not IsValid(ply) then return end
-	if not ply.ZSTurning then return end
+
+	if ply.ZSTurning then
+		return false
+	end
+
+	if not ply.ZSIsZombie and (ply.ZSHeadcrabThreatUntil or 0) > CurTime() then
+		return false
+	end
+
+	if not ply.ZSIsZombie and ply:Alive() and (zb.ROUND_STATE == 1) then
+		return false
+	end
+
 	return false
+end)
+
+hook.Add("EntityTakeDamage", "ZS_MarkHeadcrabThreatOnSurvivor", function(target, dmginfo)
+	if CurrentRound().name ~= "zombiesurvival" then return end
+	if not IsValid(target) or not target:IsPlayer() then return end
+	if target.ZSIsZombie then return end
+
+	local attacker = dmginfo:GetAttacker()
+	if not IsValid(attacker) or not attacker:IsNPC() then return end
+	if not string.StartWith(attacker:GetClass(), "npc_headcrab") then return end
+
+	target.ZSHeadcrabThreatUntil = CurTime() + 8
 end)
