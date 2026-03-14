@@ -59,6 +59,22 @@ function MODE:CanLaunch()
 	return active >= 3
 end
 
+
+function MODE:GetTeamSpawn()
+	local team0 = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_T"))
+	local team1 = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_CT"))
+
+	if not team0 or #team0 == 0 then
+		team0 = {zb:GetRandomSpawn()}
+	end
+
+	if not team1 or #team1 == 0 then
+		team1 = {zb:GetRandomSpawn()}
+	end
+
+	return team0, team1
+end
+
 function MODE:GetHeadcrabSpawnPoints()
 	local spawnPoints = {}
 	for _, className in ipairs(self.HeadcrabSpawnClasses) do
