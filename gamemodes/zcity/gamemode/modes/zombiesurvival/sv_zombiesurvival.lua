@@ -116,6 +116,31 @@ function MODE:ApplyHeadcrabAlphaRelationship(headcrab)
 	if not IsValid(alpha) then return end
 
 	headcrab:AddEntityRelationship(alpha, D_LI, 99)
+	alpha:AddEntityRelationship(headcrab, D_LI, 99)
+
+	if headcrab.SetEnemy then
+		headcrab:SetEnemy(NULL)
+	end
+end
+
+function MODE:GiveZombieAttackSWEP(ply)
+	if not IsValid(ply) then return end
+
+	local zombieWep = ply:GetWeapon("weapon_zombclaws")
+	if not IsValid(zombieWep) then
+		zombieWep = ply:Give("weapon_zombclaws")
+	end
+
+	if not IsValid(zombieWep) then
+		zombieWep = ply:GetWeapon("weapon_hands_sh")
+		if not IsValid(zombieWep) then
+			zombieWep = ply:Give("weapon_hands_sh")
+		end
+	end
+
+	if IsValid(zombieWep) then
+		ply:SelectWeapon(zombieWep:GetClass())
+	end
 end
 
 function MODE:RefreshHeadcrabRelationships()
@@ -183,10 +208,12 @@ function MODE:MakeZombie(ply, isAlpha)
 
 	ply:SetPlayerClass(self.ZombieClass)
 	ply:StripWeapons()
-	local zombie_wep = ply:Give("weapon_zombclaws") or ply:Give("weapon_hands_sh")
-	if IsValid(zombie_wep) then
-		ply:SelectWeapon(zombie_wep:GetClass())
-	end
+	self:GiveZombieAttackSWEP(ply)
+	timer.Simple(0, function()
+		if IsValid(ply) and ply.ZSIsZombie then
+			MODE:GiveZombieAttackSWEP(ply)
+		end
+	end)
 	ply.isTraitor = true
 	ply.MainTraitor = isAlpha and true or false
 	ply.ZSIsZombie = true
@@ -379,4 +406,18 @@ hook.Add("EntityTakeDamage", "ZS_MarkHeadcrabThreatOnSurvivor", function(target,
 	if not string.StartWith(attacker:GetClass(), "npc_headcrab") then return end
 
 	target.ZSHeadcrabThreatUntil = CurTime() + 8
+end)
+
+hook.Add("EntityTakeDamage", "ZS_BlockHeadcrabDamageToAlpha", function(target, dmginfo)
+	if CurrentRound().name ~= "zombiesurvival" then return end
+	if not IsValid(target) or not target:IsPlayer() then return end
+	if not target.ZSIsAlpha then return end
+
+	local attacker = dmginfo:GetAttacker()
+	if not IsValid(attacker) or not attacker:IsNPC() then return end
+	if not string.StartWith(attacker:GetClass(), "npc_headcrab") then return end
+
+	dmginfo:SetDamage(0)
+	dmginfo:ScaleDamage(0)
+	return true
 end)
