@@ -18,6 +18,7 @@ MODE.HeadcrabSpawnClasses = {
 
 function MODE:Intermission()
 	game.CleanUpMap()
+	self.RoundStartGraceEnd = nil
 	timer.Remove("ZS_HeadcrabSpawner")
 
 	for _, ply in player.Iterator() do
@@ -151,6 +152,7 @@ function MODE:StartHeadcrabSpawner()
 end
 
 function MODE:RoundStart()
+	self.RoundStartGraceEnd = CurTime() + 5
 	self.SpawnedZombieHeadcrabs = {}
 	self:SpawnAmbientHeadcrabs(self.HeadcrabAmount)
 	self:StartHeadcrabSpawner()
@@ -164,7 +166,10 @@ function MODE:MakeZombie(ply, isAlpha)
 
 	ply:SetPlayerClass(self.ZombieClass)
 	ply:StripWeapons()
-	ply:Give("weapon_hands_sh")
+	local zombie_wep = ply:Give("weapon_zombclaws") or ply:Give("weapon_hands_sh")
+	if IsValid(zombie_wep) then
+		ply:SelectWeapon(zombie_wep:GetClass())
+	end
 	ply.isTraitor = true
 	ply.MainTraitor = isAlpha and true or false
 	ply.ZSIsZombie = true
@@ -183,8 +188,13 @@ function MODE:MakeSurvivor(ply)
 	if not IsValid(ply) then return end
 
 	ply:StripWeapons()
-	ply:SetPlayerClass("refugee")
-	ply:Give("weapon_hands_sh")
+	if ApplyAppearance then
+		ApplyAppearance(ply, nil, nil, nil, true)
+	end
+	local hands = ply:Give("weapon_hands_sh")
+	if IsValid(hands) then
+		ply:SelectWeapon("weapon_hands_sh")
+	end
 	ply:Give("weapon_pocketknife")
 	ply:Give("weapon_bandage_sh")
 	ply:Give("weapon_smallconsumable")
@@ -204,6 +214,10 @@ end
 function MODE:GiveEquipment()
 	for _, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
+
+		if ApplyAppearance then
+			ApplyAppearance(ply, nil, nil, nil, true)
+		end
 
 		ply:Spawn()
 		ply:GetRandomSpawn()
@@ -238,6 +252,10 @@ function MODE:GetAliveSurvivorCount()
 end
 
 function MODE:ShouldRoundEnd()
+	if self.RoundStartGraceEnd and CurTime() < self.RoundStartGraceEnd then
+		return false
+	end
+
 	local alpha = self:GetAlphaAlive()
 	if not IsValid(alpha) then
 		self.ZSWinner = "survivors"
@@ -269,6 +287,7 @@ function MODE:EndRound()
 	net.Broadcast()
 
 	self.ZSWinner = nil
+	self.RoundStartGraceEnd = nil
 end
 
 function MODE:StartZombieTurn(victim)
