@@ -83,6 +83,31 @@ function MODE:GetAliveHeadcrabCount()
 	return #alive
 end
 
+function MODE:GetAlphaPlayer()
+	for _, ply in player.Iterator() do
+		if ply.ZSIsAlpha and ply:Team() ~= TEAM_SPECTATOR then
+			return ply
+		end
+	end
+end
+
+function MODE:ApplyHeadcrabAlphaRelationship(headcrab)
+	if not IsValid(headcrab) or not headcrab:IsNPC() then return end
+
+	local alpha = self:GetAlphaPlayer()
+	if not IsValid(alpha) then return end
+
+	headcrab:AddEntityRelationship(alpha, D_LI, 99)
+end
+
+function MODE:RefreshHeadcrabRelationships()
+	self.SpawnedZombieHeadcrabs = self.SpawnedZombieHeadcrabs or {}
+
+	for _, headcrab in ipairs(self.SpawnedZombieHeadcrabs) do
+		self:ApplyHeadcrabAlphaRelationship(headcrab)
+	end
+end
+
 function MODE:SpawnAmbientHeadcrabs(spawnCount)
 	local spawnPoints = self:GetHeadcrabSpawnPoints()
 	if #spawnPoints == 0 then return 0 end
@@ -105,6 +130,7 @@ function MODE:SpawnAmbientHeadcrabs(spawnCount)
 		headcrab:SetAngles(Angle(0, math.random(0, 359), 0))
 		headcrab:Spawn()
 		headcrab:Activate()
+		self:ApplyHeadcrabAlphaRelationship(headcrab)
 		self.SpawnedZombieHeadcrabs[#self.SpawnedZombieHeadcrabs + 1] = headcrab
 		spawned = spawned + 1
 	end
@@ -147,6 +173,7 @@ function MODE:MakeZombie(ply, isAlpha)
 
 	if isAlpha then
 		zb.GiveRole(ply, "Zombie Alpha", Color(130, 220, 90))
+		self:RefreshHeadcrabRelationships()
 	else
 		zb.GiveRole(ply, "Zombie", Color(100, 170, 70))
 	end
