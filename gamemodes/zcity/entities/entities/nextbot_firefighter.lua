@@ -26,6 +26,14 @@ function ENT:Initialize()
     self:SetHealth(500)
     self:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
     self:SetNoDraw(false)
+    
+    if CLIENT then return end
+
+    if not self.loco then
+        ErrorNoHalt("[nextbot_firefighter] Missing loco in Initialize; removing bot\n")
+        self:Remove()
+        return
+    end
 
     self.loco:SetDesiredSpeed(self.MoveSpeed)
     self.loco:SetAcceleration(4000)
@@ -41,6 +49,8 @@ function ENT:Initialize()
 end
 
 function ENT:EquipExtinguisherProp()
+    if CLIENT then return end
+
     local extinguisher = ents.Create("prop_dynamic")
     if not IsValid(extinguisher) then return end
 
@@ -87,6 +97,8 @@ function ENT:FindBestFire()
 end
 
 function ENT:RunBehaviour()
+    if not self.loco then return end
+
     while true do
         self:StartActivity(ACT_RUN)
 
@@ -111,6 +123,8 @@ function ENT:RunBehaviour()
 end
 
 function ENT:MoveAndExtinguish(fire)
+    if not self.loco then return end
+
     local firePos = fire:GetPos()
     local myPos = self:GetPos()
     local toFire = firePos - myPos
