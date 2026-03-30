@@ -278,12 +278,16 @@ function ENT:Explode()
 		if IsValid(phys) then
 			entsCount = entsCount + 1
 		end
-		
-		local phys = enta:GetPhysicsObject()
+
 		local force = (enta:GetPos() - selfPos)
 		local len = force:Length()
-		force:Div(len)
-		local frac = math.Clamp((disorientation_dis - len) / disorientation_dis, 0.1, 1)  
+		if len <= 0 then
+			len = 1
+			force = VectorRand():GetNormalized()
+		else
+			force:Div(len)
+		end
+		local frac = math.Clamp((disorientation_dis - len) / disorientation_dis, 0.1, 1)
 		local physics_frac = math.Clamp((dis - len) / dis, 0.5, 1)  
 		local forceadd = force * physics_frac * 50000  
 

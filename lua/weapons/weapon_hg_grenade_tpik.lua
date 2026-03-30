@@ -248,13 +248,17 @@ function SWEP:Throw(mul, time, nosound, throwPosAdjust, throwAngAdjust)
 	if not self.ENT then return end
 
 	local owner = self.Thrower or self:GetOwner()
+	if not IsValid(owner) then return end
+
 	local ent = ents.Create(self.ENT)
-	local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or IsValid(owner) and owner
+	if not IsValid(ent) then return end
+
+	local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
 	throwPosAdjust = throwPosAdjust or Vector(0,0,5)
 	throwAngAdjust = throwAngAdjust or Angle(0,0,0)
 	--throwPosAdjust[2] = throwPosAdjust[2] + 2
 	local _,_,headm = self:GetEyeTrace()
-	local eyepos = headm:GetTranslation() or false
+	local eyepos = (headm and headm.GetTranslation and headm:GetTranslation()) or owner:EyePos()
 	local ang = IsValid(entOwner) and owner:EyeAngles() or self:GetAngles()
 	local hand = eyepos and eyepos + ang:Forward() * throwPosAdjust[1] + ang:Right() * (throwPosAdjust[2] + 2) + ang:Up() * throwPosAdjust[3] or self:GetPos()
 
@@ -312,9 +316,9 @@ function SWEP:Throw(mul, time, nosound, throwPosAdjust, throwAngAdjust)
 	angThrow:RotateAroundAxis(angThrow:Up(),throwAngAdjust[3])
 	ent:SetAngles(angThrow)
 	local phys = ent:GetPhysicsObject()
-	if phys then 
-		real_ent = hg.GetCurrentCharacter(owner)
-		phys:SetVelocity(IsValid(real_ent) and (owner:GetAimVector() * mul/1.5) + real_ent:GetVelocity() or Vector(0,0,0)) 
+	if IsValid(phys) then
+		local real_ent = hg.GetCurrentCharacter(owner)
+		phys:SetVelocity(IsValid(real_ent) and (owner:GetAimVector() * mul/1.5) + real_ent:GetVelocity() or vector_origin)
 	end
 	if owner:IsOnGround() then
 		owner:SetVelocity(owner:GetVelocity() - owner:GetVelocity()/2)

@@ -270,6 +270,11 @@ local functions = {
         --print(weaponIsEnt)
         if not weaponIsEnt then
             weapon = ents.Create(wep)
+            if not IsValid(weapon) then
+                ent.inventory.Weapons[wep] = nil
+                return
+            end
+
             weapon.DontEquipInstantly = (not weapon.NoHolster) and (weapon.weaponInvCategory != 1)
             weapon.IsSpawned = true
             weapon.init = true

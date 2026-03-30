@@ -293,7 +293,8 @@ function hg.GenerateLoot(ply,ent,func)
 				if ammo then entName = "ent_ammo_" .. ammo end
 				
 				if ammo then
-					AmmoCount = math.random(hg.ammoents[ammo].Count or 30)
+					local ammoData = hg.ammoents and hg.ammoents[ammo]
+					AmmoCount = math.random((ammoData and ammoData.Count) or 30)
 				end
 			else
 				local tbl = hg.ammotypeshuy[string.Replace(entName, "ent_ammo_", "")]
@@ -424,7 +425,11 @@ hook.Add("ZB_InventoryChecked", "LootSpawn", function(ply, ent)
 			entName = string.Replace(entName,"ent_att_","")
 			entName = string.Replace(entName,"ent_armor_","")
 			entName = string.Replace(entName,"ent_ammo_","")
-			functions[Tab](ent,entName,AmmoCount)
+
+			local addLoot = functions[Tab]
+			if addLoot then
+				addLoot(ent,entName,AmmoCount)
+			end
 		end
 	end
 

@@ -1020,7 +1020,7 @@ players : 1 humans, 0 bots (20 max)
 		for i = 1, #hg.flashes do
 			flash = hg.flashes[i]
 			
-			local animpos = flash.animpos
+			local animpos = flash.animpos or 0
 			local size = flash.size
 
 			local huy = (1 - animpos) * -100
