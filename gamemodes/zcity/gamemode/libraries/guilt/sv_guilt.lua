@@ -51,15 +51,15 @@ hook.Add( "PlayerInitialSpawn","ZB_GuiltSQL", function( ply )
                 ply:SetNetVar("Karma", ply.Karma)
 
                 if zb.GuiltSQL.PlayerInstances[steamID64].value < 0 then
-                    ply:guilt_SetValue( 10 )
-                    local karma = ply.Karma
+                    local oldKarma = ply.Karma
 
                     ply.Karma = 10
                     ply:SetNetVar("Karma", ply.Karma)
+                    ply:guilt_SetValue(ply.Karma)
 
                     timer.Simple(0, function()
-                        ply:Ban(5, false)
-                        ply:Kick("Your karma is too low: " .. math.Round( karma, 0 ) .. ". Try again in 5 minutes." )
+                        if not IsValid(ply) then return end
+                        ply:ChatPrint("Your stored karma was invalid (" .. math.Round(oldKarma, 0) .. "), it has been reset to 10.")
                     end)
                 end
 			else
@@ -250,7 +250,9 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
         local name = Attacker:Name()
         local karma = Attacker.Karma
 
-        Attacker:guilt_SetValue( 10 )
+        Attacker.Karma = 10
+        Attacker:SetNetVar("Karma", Attacker.Karma)
+        Attacker:guilt_SetValue(Attacker.Karma)
 
         -- we wait one tick to make them pay for all the murders they've done
         -- also makes sure the message is displayed only once
@@ -385,6 +387,8 @@ hook.Add("ZB_StartRound","NO_HARM",function()
             ply.KarmaGain = 0.75
         end
 
+        ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
+        ply:SetNetVar("Karma", ply.Karma)
         //ply:guilt_SetValue( ply.Karma or 100 )
     end
     
