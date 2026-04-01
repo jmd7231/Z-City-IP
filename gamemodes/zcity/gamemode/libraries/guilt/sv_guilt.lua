@@ -264,10 +264,12 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
             local time = math.Round(60 - karma * 4, 0)
 
             if ULib and ULib.addBan then
-                ULib.addBan(steamID, 60, "Kicked and banned for having too low karma.", name, "System")
+                ULib.addBan(steamID, time, "Kicked and banned for having too low karma.", name, "System")
             else
+                RunConsoleCommand("banid", tostring(time), steamID)
+                RunConsoleCommand("writeid")
+
                 if IsValid(Attacker) then
-                    Attacker:Ban(60, true)
                     Attacker:Kick("Kicked and banned for having too low karma.")
                 end
             end
