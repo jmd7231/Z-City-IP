@@ -51,15 +51,15 @@ hook.Add( "PlayerInitialSpawn","ZB_GuiltSQL", function( ply )
                 ply:SetNetVar("Karma", ply.Karma)
 
                 if zb.GuiltSQL.PlayerInstances[steamID64].value < 0 then
-                    ply:guilt_SetValue( 10 )
-                    local karma = ply.Karma
+                    local oldKarma = ply.Karma
 
                     ply.Karma = 10
                     ply:SetNetVar("Karma", ply.Karma)
+                    ply:guilt_SetValue(ply.Karma)
 
                     timer.Simple(0, function()
-                        ply:Ban(5, false)
-                        ply:Kick("Your karma is too low: " .. math.Round( karma, 0 ) .. ". Try again in 5 minutes." )
+                        if not IsValid(ply) then return end
+                        ply:ChatPrint("Your stored karma was invalid (" .. math.Round(oldKarma, 0) .. "), it has been reset to 10.")
                     end)
                 end
 			else
@@ -108,6 +108,18 @@ local function IsLookingAt(ply, targetVec)
     if not IsValid(ply) or not ply:IsPlayer() then return false end
     local diff = targetVec - ply:GetShootPos()
     return ply:GetAimVector():Dot(diff) / diff:Length() >= 0.8
+end
+
+local function IssueKarmaBan(steamID, name, minutes, reason, ply)
+    local banMinutes = math.max(1, math.floor(tonumber(minutes) or 0))
+
+    if ULib and ULib.addBan then
+        ULib.addBan(steamID, banMinutes, reason, name, "System")
+    end
+
+    if IsValid(ply) then
+        ply:Kick(reason)
+    end
 end
 
 hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, harm) 
@@ -231,13 +243,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + add
 
     if shouldBanGuilt and Attacker.Guilt >= 100 then
-        if ULib and ULib.addBan then
-            ULib.addBan(Attacker:SteamID(), 30, "Kicked and banned for dealing too much team damage.", Attacker:Name(), "System")
-        else
-            Attacker:Ban(30, true)
-            Attacker:Kick("Kicked and banned for dealing too much team damage.")
-        end
-
+        IssueKarmaBan(Attacker:SteamID(), Attacker:Name(), 30, "Kicked and banned for dealing too much team damage.", Attacker)
         PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
     end
 
@@ -263,14 +269,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 
             local time = math.Round(60 - karma * 4, 0)
 
-            if ULib and ULib.addBan then
-                ULib.addBan(steamID, 60, "Kicked and banned for having too low karma.", name, "System")
-            else
-                if IsValid(Attacker) then
-                    Attacker:Ban(60, true)
-                    Attacker:Kick("Kicked and banned for having too low karma.")
-                end
-            end
+            IssueKarmaBan(steamID, name, time, "Kicked and banned for having too low karma.", Attacker)
 
             PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
         end)
@@ -380,15 +379,22 @@ hook.Add("ZB_EndRound","savevalues",function()
 end)
 
 hook.Add("ZB_StartRound","NO_HARM",function()
+    local _, cround = CurrentRound()
+
     for i,ply in player.Iterator() do
-        if (ply.Guilt or 0) < 1 then
-            ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
-        else
-            ply.KarmaGain = 0.75
+        if ply.LastKarmaRound ~= cround then
+            ply.LastKarmaRound = cround
+
+            if (ply.Guilt or 0) < 1 then
+                ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
+            else
+                ply.KarmaGain = 0.75
+            end
+
+            ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
+            ply:SetNetVar("Karma", ply.Karma)
         end
 
-        ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
-        ply:SetNetVar("Karma", ply.Karma)
         //ply:guilt_SetValue( ply.Karma or 100 )
     end
     
