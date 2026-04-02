@@ -388,6 +388,7 @@ hook.Add("ZB_StartRound","NO_HARM",function()
 
         ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
         ply:SetNetVar("Karma", ply.Karma)
+        ply:ChatPrint("Your current karma is " .. tostring(math.Round(ply.Karma)))
         //ply:guilt_SetValue( ply.Karma or 100 )
     end
     
