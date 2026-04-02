@@ -110,6 +110,17 @@ local function IsLookingAt(ply, targetVec)
     return ply:GetAimVector():Dot(diff) / diff:Length() >= 0.8
 end
 
+local function IssueKarmaBan(ply, minutes, reason)
+    if not IsValid(ply) then return end
+
+    local steamID = ply:SteamID()
+    local banMinutes = math.max(1, math.floor(tonumber(minutes) or 0))
+
+    RunConsoleCommand("banid", tostring(banMinutes), steamID)
+    RunConsoleCommand("writeid")
+    ply:Kick(reason)
+end
+
 hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, harm) 
     local Attacker, Victim = dmgInfo:GetAttacker(), ply
     
@@ -231,13 +242,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + add
 
     if shouldBanGuilt and Attacker.Guilt >= 100 then
-        if ULib and ULib.addBan then
-            ULib.addBan(Attacker:SteamID(), 30, "Kicked and banned for dealing too much team damage.", Attacker:Name(), "System")
-        else
-            Attacker:Ban(30, true)
-            Attacker:Kick("Kicked and banned for dealing too much team damage.")
-        end
-
+        IssueKarmaBan(Attacker, 30, "Kicked and banned for dealing too much team damage.")
         PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
     end
 
@@ -263,15 +268,11 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 
             local time = math.Round(60 - karma * 4, 0)
 
-            if ULib and ULib.addBan then
-                ULib.addBan(steamID, time, "Kicked and banned for having too low karma.", name, "System")
+            if IsValid(Attacker) then
+                IssueKarmaBan(Attacker, time, "Kicked and banned for having too low karma.")
             else
-                RunConsoleCommand("banid", tostring(time), steamID)
+                RunConsoleCommand("banid", tostring(math.max(1, math.floor(time))), steamID)
                 RunConsoleCommand("writeid")
-
-                if IsValid(Attacker) then
-                    Attacker:Kick("Kicked and banned for having too low karma.")
-                end
             end
 
             PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
