@@ -110,11 +110,15 @@ local function IsLookingAt(ply, targetVec)
     return ply:GetAimVector():Dot(diff) / diff:Length() >= 0.8
 end
 
-local function IssueKarmaBan(steamID, name, minutes, reason, ply)
+local function IssueKarmaBan(steamID, minutes, reason, ply)
     local banMinutes = math.max(1, math.floor(tonumber(minutes) or 0))
 
     if ULib and ULib.addBan then
-        ULib.addBan(steamID, banMinutes, reason, name, "System")
+        ULib.addBan(steamID, banMinutes, reason, "System")
+
+        if ULib.refreshBans then
+            ULib.refreshBans()
+        end
     end
 
     if IsValid(ply) then
@@ -243,7 +247,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + add
 
     if shouldBanGuilt and Attacker.Guilt >= 100 then
-        IssueKarmaBan(Attacker:SteamID(), Attacker:Name(), 30, "Kicked and banned for dealing too much team damage.", Attacker)
+        IssueKarmaBan(Attacker:SteamID(), 30, "Kicked and banned for dealing too much team damage.", Attacker)
         PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
     end
 
@@ -269,7 +273,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 
             local time = math.Round(60 - karma * 4, 0)
 
-            IssueKarmaBan(steamID, name, time, "Kicked and banned for having too low karma.", Attacker)
+            IssueKarmaBan(steamID, time, "Kicked and banned for having too low karma.", Attacker)
 
             PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
         end)
