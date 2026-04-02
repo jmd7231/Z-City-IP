@@ -379,16 +379,22 @@ hook.Add("ZB_EndRound","savevalues",function()
 end)
 
 hook.Add("ZB_StartRound","NO_HARM",function()
+    local _, cround = CurrentRound()
+
     for i,ply in player.Iterator() do
-        if (ply.Guilt or 0) < 1 then
-            ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
-        else
-            ply.KarmaGain = 0.75
+        if ply.LastKarmaRound ~= cround then
+            ply.LastKarmaRound = cround
+
+            if (ply.Guilt or 0) < 1 then
+                ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
+            else
+                ply.KarmaGain = 0.75
+            end
+
+            ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
+            ply:SetNetVar("Karma", ply.Karma)
         end
 
-        ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
-        ply:SetNetVar("Karma", ply.Karma)
-        ply:ChatPrint("Your current karma is " .. tostring(math.Round(ply.Karma)))
         //ply:guilt_SetValue( ply.Karma or 100 )
     end
     
