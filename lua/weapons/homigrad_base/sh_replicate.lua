@@ -8,11 +8,11 @@ if CLIENT then
 		if not IsValid(self) then return end
 		if !broadcastAnyways and self:GetOwner() == LocalPlayer() and !game.SinglePlayer() then return end
 		
-		if self.Shoot then
-			self:Shoot(shoot)
-		end
-	end)
-end
+			if isfunction(self.Shoot) then
+				self:Shoot(shoot)
+			end
+		end)
+	end
 
 function SWEP:IsClient()
 	return CLIENT and self:GetOwner() == LocalPlayer()

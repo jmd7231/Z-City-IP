@@ -182,7 +182,7 @@ MODE.LootTable = {
         {5,"weapon_hg_f1_tpik"},
         {5,"weapon_traitor_ied"},
         {5,"weapon_hg_slam"},
-        {5,"weapon_hg_legacy_grenade_shg"},
+        {5,"weapon_hg_rgd_tpik"},
         {5,"weapon_hg_grenade_tpik"},
         {5,"weapon_ptrd"},
         {5,"weapon_akm"},
