@@ -197,7 +197,10 @@ function SWEP:Shoot(override)
 	self:EmitShoot()
 	self:PrimarySpread()
 	self:TakePrimaryAmmo(1)
-	self:GetWM():SetSkin(0)
+	local wm = self:GetWM()
+	if IsValid(wm) then
+		wm:SetSkin(0)
+	end
 	self:PlayAnim("fire",1,false,nil,false,false,true)
 end
 SWEP.dort = true
