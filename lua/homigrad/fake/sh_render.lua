@@ -76,7 +76,9 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 
 		ent:SetupBones()
 
-		hg.MainTPIKFunction(ent, ply, wep)
+		if type(hg.MainTPIKFunction) == "function" then
+			hg.MainTPIKFunction(ent, ply, wep)
+		end
 
 		if IsValid(ply.OldRagdoll) then
 			hg.SmoothUnfake(ent, ply)
