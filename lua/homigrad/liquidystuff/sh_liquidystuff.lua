@@ -57,6 +57,8 @@ end
 if SERVER then
 	util.AddNetworkString("gas particle")
 	util.AddNetworkString("gasoline_path")
+	local gasolinePathNetInterval = CreateConVar("hg_gasolinepath_net_interval", "2", FCVAR_ARCHIVE, "Seconds between gasoline path replication updates.")
+	local gasolinePathNetMaxPoints = CreateConVar("hg_gasolinepath_net_maxpoints", "128", FCVAR_ARCHIVE, "Maximum gasoline path points sent to clients per update.")
 	
 	local time = CurTime()
 	local CurTime = CurTime
@@ -69,11 +71,12 @@ if SERVER then
 		end
 	end)
 
-	local time2 = CurTime()
-	local ents_FindInSphere = ents.FindInSphere
-	hook.Add("Think", "path_think", function()
-		if time2 > CurTime() then return end
-		time2 = time2 + 1
+		local time2 = CurTime()
+		local nextGasPathNet = CurTime()
+		local ents_FindInSphere = ents.FindInSphere
+		hook.Add("Think", "path_think", function()
+			if time2 > CurTime() then return end
+			time2 = time2 + 1
 
 		for i, tbl in ipairs(hg.gasolinePath) do
 			local pos, ignited = tbl[1], tbl[2]
@@ -103,10 +106,34 @@ if SERVER then
 			end
 		end
 
-		net.Start("gasoline_path")
-		net.WriteTable(hg.gasolinePath)
-		net.Broadcast()
-	end)
+			if nextGasPathNet > CurTime() then return end
+			nextGasPathNet = CurTime() + math.max(gasolinePathNetInterval:GetFloat(), 0.2)
+
+			local maxPoints = math.max(gasolinePathNetMaxPoints:GetInt(), 8)
+			local path = hg.gasolinePath
+			local pathLen = #path
+			if pathLen <= 0 then
+				net.Start("gasoline_path")
+				net.WriteTable(path)
+				net.Broadcast()
+				return
+			end
+
+			if pathLen > maxPoints then
+				local slimPath = {}
+				local startIndex = pathLen - maxPoints + 1
+				for idx = startIndex, pathLen do
+					slimPath[#slimPath + 1] = path[idx]
+				end
+				net.Start("gasoline_path")
+				net.WriteTable(slimPath)
+				net.Broadcast()
+			else
+				net.Start("gasoline_path")
+				net.WriteTable(path)
+				net.Broadcast()
+			end
+		end)
 
 	hook.Add("PostCleanupMap","removetrailsofevidence",function()
 		hg.drums = {}
