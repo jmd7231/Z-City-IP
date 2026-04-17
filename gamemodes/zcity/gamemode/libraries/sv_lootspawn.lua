@@ -576,8 +576,29 @@ if #spawns > 0 then
 end
 
 local hook_Run = hook.Run
-hook.Add("PostCleanupMap", "addboxs", function()
+local lootSpawnInterval = CreateConVar("hg_lootspawn_interval", "12", FCVAR_ARCHIVE, "Seconds between loot spawner ticks.")
+local lootSpawnMaxSpawned = CreateConVar("hg_lootspawn_max_spawned", "96", FCVAR_ARCHIVE, "Maximum amount of active loot-spawned entities.")
+
+local function CountSpawnedLootEntities()
+	local count = 0
+	for _, ent in ipairs(ents.GetAll()) do
+		if not IsValid(ent) then continue end
+		if ent.IsSpawned then
+			count = count + 1
+		end
+	end
+	return count
+end
+
+local function RestartLootSpawnTimer()
 	if timer.Exists("SpawnTheBoxes") then timer.Remove("SpawnTheBoxes") end
+	timer.Create("SpawnTheBoxes", math.max(lootSpawnInterval:GetFloat(), 2), 0, function()
+		hook_Run("Boxes Think")
+	end)
+end
+
+hook.Add("PostCleanupMap", "addboxs", function()
+	RestartLootSpawnTimer()
 	timer.Simple(.5,function()
 		spawns = {}
 		for i, ent in pairs(ents.FindByClass("info_*")) do
@@ -602,22 +623,26 @@ hook.Add("PostCleanupMap", "addboxs", function()
 
 		table.Add(spawns,tbladd)
 
-		timer.Create("SpawnTheBoxes", 8, 0, function() hook_Run("Boxes Think") end)
-	end)
+			RestartLootSpawnTimer()
+		end)
 end)
 
-if timer.Exists("SpawnTheBoxes") then timer.Remove("SpawnTheBoxes") end
-timer.Create("SpawnTheBoxes", 8, 0, function() hook_Run("Boxes Think") end)
+RestartLootSpawnTimer()
 
 local vec = Vector(0, 0, 64)
 local vec_dist = Vector(500,500,500)
+local lootSpawnProps = CreateConVar("hg_lootspawn_spawn_props", "0", FCVAR_ARCHIVE, "Allow loot spawner to spawn random prop_physics containers.")
+local lootFreezeSpawnedProps = CreateConVar("hg_lootspawn_freeze_props", "1", FCVAR_ARCHIVE, "Freeze random prop_physics spawned by loot spawner to prevent unstable physics.")
 hook.Add("Boxes Think", "SpawnBoxes", function()
 	if zb.ROUND_STATE ~= 1 or not CurrentRound().LootSpawn then return end
+	if CountSpawnedLootEntities() >= lootSpawnMaxSpawned:GetInt() then return end
 	//local spawnPos = table.Random(spawns) + vec
 
 	//local spawnPos = zb:FurthestFromEveryone(spawns) + vec
 	local tbl = player.GetAll()
+	if #tbl == 0 then return end
 	local ply = tbl[math.random(#tbl)]
+	if not IsValid(ply) then return end
 	
 	local vel = ply:GetVelocity() * math.random(1, 100) + VectorRand(-1024, 1024)
 	vel[3] = 0
@@ -663,7 +688,7 @@ hook.Add("Boxes Think", "SpawnBoxes", function()
 		end
 	end
 
-	if (math.random(2) == 1) and not CurrentRound().noBoxes then
+	if lootSpawnProps:GetBool() and (math.random(2) == 1) and not CurrentRound().noBoxes then
 
 		/*if math.random(4) == 1 then
 			local huy = ents.Create("prop_physics")
@@ -689,11 +714,17 @@ hook.Add("Boxes Think", "SpawnBoxes", function()
 		tr.collisiongroup = COLLISION_GROUP_WORLD
 		local trace = util.TraceEntity(tr, huy)
 		
-		if !trace.Hit then
-			huy:Spawn()
-		else
-			huy:Remove()
-		end
+			if !trace.Hit then
+				huy:Spawn()
+				huy:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+				local phys = huy:GetPhysicsObject()
+				if IsValid(phys) and lootFreezeSpawnedProps:GetBool() then
+					phys:EnableMotion(false)
+					phys:Sleep()
+				end
+			else
+				huy:Remove()
+			end
 
 		--huy.stats = stats--длина и тип спавна лута (для рп дополнения...)
 		return
@@ -731,5 +762,3 @@ for i = 1,100 do
 		huy.AmmoCount = AmmoCount
 	end
 end--]]
-
-
