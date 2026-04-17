@@ -1043,7 +1043,8 @@ function hg.DoTPIK(ply, ent)
             ply.segmentsr[3] = ply.segmentsr[3] or {Pos = hand, Len = limblength}
             ply.segmentsr[3].Pos = LerpVector(ply.leftClicking, ply.segmentsr[3].Pos + (-vector_up * 0.8 + eyeang:Forward() * 0.4 + ent:GetVelocity() / 400) * 0.5, hand)
         else
-            ply.segmentsr[3] = {Pos = Lerp(1 - lerp_rh, ply.last_rh and ply.last_rh:GetTranslation() or ply.segmentsr[3].Pos, ply_r_hand_matrix_old and ply_r_hand_matrix_old:GetTranslation() or hand), Len = 12}
+            local prevRightHandPos = (ply.segmentsr[3] and ply.segmentsr[3].Pos) or hand
+            ply.segmentsr[3] = {Pos = Lerp(1 - lerp_rh, ply.last_rh and ply.last_rh:GetTranslation() or prevRightHandPos, ply_r_hand_matrix_old and ply_r_hand_matrix_old:GetTranslation() or hand), Len = 12}
         end
 
         local segments = ply.segmentsr
@@ -1054,6 +1055,7 @@ function hg.DoTPIK(ply, ent)
         end
 
         segments = solve(segments, 4)
+        if not (segments and segments[1] and segments[2] and segments[3]) then return end
 
         if lply:IsSuperAdmin() then
             for i = 2, #segments do
@@ -1212,7 +1214,8 @@ function hg.DoTPIK(ply, ent)
             ply.segmentsl[3] = ply.segmentsl[3] or {Pos = hand, Len = limblength}
             ply.segmentsl[3].Pos = LerpVector(!(ishgweapon(self) and self:IsPistolHoldType()) and 0.05 or 0.01, ply.segmentsl[3].Pos + (-vector_up * 0.6 + eyeang:Forward() * 0.4 + ((ishgweapon(self) and !self:IsPistolHoldType()) and eyeang:Right() * 0.7 or vector_origin) + ent:GetVelocity() / 400) * 0.5, hand)
         else
-            ply.segmentsl[3] = {Pos = Lerp(1 - lerp_lh, ply.last_lh and ply.last_lh:GetTranslation() or ply.segmentsl[3].Pos, ply_l_hand_matrix_old and ply_l_hand_matrix_old:GetTranslation() or hand), Len = 12}
+            local prevLeftHandPos = (ply.segmentsl[3] and ply.segmentsl[3].Pos) or hand
+            ply.segmentsl[3] = {Pos = Lerp(1 - lerp_lh, ply.last_lh and ply.last_lh:GetTranslation() or prevLeftHandPos, ply_l_hand_matrix_old and ply_l_hand_matrix_old:GetTranslation() or hand), Len = 12}
         end
 
         local segments = ply.segmentsl
@@ -1224,6 +1227,7 @@ function hg.DoTPIK(ply, ent)
         end
 
         segments = solve(segments, 4)
+        if not (segments and segments[1] and segments[2] and segments[3]) then return end
 
         --[[if lply:IsSuperAdmin() then
             for i = 2, #segments do
