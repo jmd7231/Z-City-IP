@@ -388,7 +388,7 @@ function zb.WeightedChanceMode(modes_chances)
 		for name, chance in RandomPairs(modes_chances) do
 			count = count + (newchancestbl[name] or chance) * 100
 
-			if count == random then
+			if count >= random then
 				return name
 			end
 		end
