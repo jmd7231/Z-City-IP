@@ -858,7 +858,7 @@ if CLIENT then
 			local clip = self:Clip1()
 			local owner = self:GetOwner()
 			local shoot = CurTime() - self:LastShootTime()
-			local ammo = owner:GetAmmoCount(self:GetPrimaryAmmoType())
+			local ammo = (IsValid(owner) and owner.GetAmmoCount) and owner:GetAmmoCount(self:GetPrimaryAmmoType()) or 0
 			local magCount = self.AnimInsert and ammo or math.ceil(ammo / clipsize)
 			local posX = scrW*0.75
 			local posX2 = scrW*0.8
