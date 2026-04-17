@@ -611,6 +611,8 @@ timer.Create("SpawnTheBoxes", 8, 0, function() hook_Run("Boxes Think") end)
 
 local vec = Vector(0, 0, 64)
 local vec_dist = Vector(500,500,500)
+local lootSpawnProps = CreateConVar("hg_lootspawn_spawn_props", "0", FCVAR_ARCHIVE, "Allow loot spawner to spawn random prop_physics containers.")
+local lootFreezeSpawnedProps = CreateConVar("hg_lootspawn_freeze_props", "1", FCVAR_ARCHIVE, "Freeze random prop_physics spawned by loot spawner to prevent unstable physics.")
 hook.Add("Boxes Think", "SpawnBoxes", function()
 	if zb.ROUND_STATE ~= 1 or not CurrentRound().LootSpawn then return end
 	//local spawnPos = table.Random(spawns) + vec
@@ -663,7 +665,7 @@ hook.Add("Boxes Think", "SpawnBoxes", function()
 		end
 	end
 
-	if (math.random(2) == 1) and not CurrentRound().noBoxes then
+	if lootSpawnProps:GetBool() and (math.random(2) == 1) and not CurrentRound().noBoxes then
 
 		/*if math.random(4) == 1 then
 			local huy = ents.Create("prop_physics")
@@ -689,11 +691,17 @@ hook.Add("Boxes Think", "SpawnBoxes", function()
 		tr.collisiongroup = COLLISION_GROUP_WORLD
 		local trace = util.TraceEntity(tr, huy)
 		
-		if !trace.Hit then
-			huy:Spawn()
-		else
-			huy:Remove()
-		end
+			if !trace.Hit then
+				huy:Spawn()
+				huy:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+				local phys = huy:GetPhysicsObject()
+				if IsValid(phys) and lootFreezeSpawnedProps:GetBool() then
+					phys:EnableMotion(false)
+					phys:Sleep()
+				end
+			else
+				huy:Remove()
+			end
 
 		--huy.stats = stats--длина и тип спавна лута (для рп дополнения...)
 		return
@@ -731,5 +739,4 @@ for i = 1,100 do
 		huy.AmmoCount = AmmoCount
 	end
 end--]]
-
 

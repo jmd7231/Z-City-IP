@@ -4,6 +4,16 @@ local function RagdollOwner(ent)
 	return hg.RagdollOwner(ent)
 end
 
+local function QueueCollisionRulesChanged(ent)
+	if not IsValid(ent) then return end
+	timer.Simple(0, function()
+		if IsValid(ent) then
+			ent:CollisionRulesChanged()
+		end
+	end)
+end
+
+
 SWEP.Category = "ZCity Other"
 SWEP.Instructions = "LMB - raise fists\nRELOAD - lower fists\n\nIn the raised state:\nLMB - strike\nRMB - block\n\nIn the lowered state: RMB - raise the object, RMB+R - check the pulse (when used on someone's head or hand)\n\nWhen holding the object: RELOAD - fix the object in air, E - spin the object in the air."
 SWEP.Spawnable = true
@@ -1141,12 +1151,12 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 
 		if not self.CarryEnt:GetCustomCollisionCheck() then
 			self.CarryEnt:SetCustomCollisionCheck(true)
-			self.CarryEnt:CollisionRulesChanged()
-			owner:CollisionRulesChanged()
+			QueueCollisionRulesChanged(self.CarryEnt)
+			QueueCollisionRulesChanged(owner)
 
 			self.CarryEnt:CallOnRemove("removenarsla",function()
 				if not IsValid(owner) then return end
-				owner:CollisionRulesChanged()
+				QueueCollisionRulesChanged(owner)
 				owner:SetNetVar("carryent",nil)
 				owner:SetNetVar("carrybone",nil)
 				owner:SetNetVar("carrymass",nil)
@@ -1157,8 +1167,8 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 		end
 	else
 		if IsValid(self.CarryEnt) and self.CarryEnt:GetCustomCollisionCheck() then
-			self.CarryEnt:CollisionRulesChanged()
-			owner:CollisionRulesChanged()
+			QueueCollisionRulesChanged(self.CarryEnt)
+			QueueCollisionRulesChanged(owner)
 			//self.CarryEnt:SetCustomCollisionCheck(false)
 		end
 
@@ -1724,7 +1734,7 @@ function hg.SetCarryEnt2(ply, ent, bone, mass, carrypos, targetpos, targetang, d
 
 			if not ent:GetCustomCollisionCheck() then
 				ent:SetCustomCollisionCheck(true)
-				ent:CollisionRulesChanged()
+				QueueCollisionRulesChanged(ent)
 			end
 
 			local dist = dist or phys:GetPos():Distance(ply:EyePos())
