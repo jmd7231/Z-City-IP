@@ -229,6 +229,10 @@ function GM:PlayerSpawn(ply)
 end
 
 function GM:PlayerDisconnected()
+	timer.Simple(0, function()
+		if not GAMEMODE or not GAMEMODE.UpdateRoundStarterBot then return end
+		GAMEMODE:UpdateRoundStarterBot()
+	end)
 end
 
 RunConsoleCommand("mp_show_voice_icons", "0")
@@ -376,21 +380,36 @@ end
 
 hg.addbot = hg.addbot or false
 
+function GM:UpdateRoundStarterBot()
+	local humanCount = #player.GetHumans()
+
+	if humanCount <= 1 then
+		if #player.GetListByName("bot") == 0 then
+			RunConsoleCommand("bot")
+		end
+
+		hg.addbot = true
+
+		if zb.ROUND_STATE ~= 3 then
+			zb:EndRound()
+		end
+
+		return
+	end
+
+	if humanCount > 1 and hg.addbot then
+		for i, bot in pairs(player.GetListByName("bot")) do
+			RunConsoleCommand("kick", bot:Name())
+		end
+
+		hg.addbot = false
+	end
+end
+
 function GM:PlayerInitialSpawn(ply)
 	ply.initialspawn = true
 
-	if #player.GetAll() == 1 then
-		RunConsoleCommand("bot")
-		hg.addbot = true
-		zb:EndRound()
-	end
-
-	if #player.GetHumans() > 1 and hg.addbot then
-		for i,bot in pairs(player.GetListByName("bot")) do
-			RunConsoleCommand("kick",bot:Name())
-		end
-		hg.addbot = false
-	end
+	self:UpdateRoundStarterBot()
 end
 
 function GM:IsSpawnpointSuitable( pl, spawnpointent, bMakeSuitable )
