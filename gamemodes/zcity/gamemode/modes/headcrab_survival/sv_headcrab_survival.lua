@@ -31,9 +31,8 @@ local utilityItems = {
 }
 
 local spawnClasses = {
-	"npc_headcrab",
-	"npc_headcrab_fast",
-	"npc_headcrab_black"
+	"npc_headcrab",      -- 50%
+	"npc_headcrab_fast"  -- 50%
 }
 
 local function AddMapPointPositions(into, pointName)
