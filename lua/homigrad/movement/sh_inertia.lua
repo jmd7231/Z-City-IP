@@ -45,7 +45,11 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 
 	local hg_movement_stamina_debuff = CreateConVar("hg_movement_stamina_debuff", "0.3", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply movement debuff when having low stamina", 0, 1)
 	local hg_inertiamul = CreateConVar("hg_inertiamul", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply inertia for player movement", 0.01, 5)
+	local hg_inertiaenabled = CreateConVar("hg_inertiaenabled", "0", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Enable inertia", 0, 1)
 	local hg_divejump = CreateConVar("hg_divejump", "0", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Toggle dive jumps on crouch jump", 0, 1)
+	local hg_movement_speed_gain_mul = CreateConVar("hg_movement_speed_gain_mul", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply speed gain", 0.01, 5)
+	local hg_movement_speed_lose_mul = CreateConVar("hg_movement_speed_lose_mul", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply speed lose", 0.01, 5)
+
 
 	local vomitVPAng, vecZero = Angle(1, 0, 0), Vector()
 	hook.Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
@@ -182,8 +186,13 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		ply.CurrentFrictionMul = ply.CurrentFrictionMul or 1
 		ply.FrictionGainMul = 0.01
 		ply.FrictionLoseMul = 0.2
+
 		ply.SpeedGainMul = 240 * weightmul * (ply.organism.superfighter and 5 or 1) * (ply:GetNWInt("SpeedGainClassMul", 1) or 1)
+		ply.SpeedGainMul = ply.SpeedGainMul * hg_movement_speed_gain_mul:GetFloat()
+
 		ply.SpeedLoseMul = 10000
+		ply.SpeedLoseMul = ply.SpeedLoseMul * hg_movement_speed_lose_mul:GetFloat()
+
 		ply.SpeedSharpLoseMul = 0.007
 		ply.InertiaBlend = 2000 * weightmul * (ply.organism.superfighter and 100 or 1)
 		ply.DuckingSlowdown = ply.DuckingSlowdown or 0
@@ -500,9 +509,9 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		if org.noradrenaline and org.noradrenaline > 0 and inertia_len > 0 then
 			inertia_len = inertia_len + 200 * math.Round(org.noradrenaline, 1)
 		end
-
-		mv:SetMaxSpeed(math.max(100, inertia_len))
-		mv:SetMaxClientSpeed(math.max(100, inertia_len))
+		
+		mv:SetMaxSpeed(inertia_len)
+		mv:SetMaxClientSpeed(inertia_len)
 		ply:SetMaxSpeed(math.max(100, inertia_len))
 		ply:SetJumpPower(DEFAULT_JUMP_POWER * math.min(k, 1.1) * (not ply:GetNWBool("TauntStopMoving", false) and 1 or 0) * (ply.organism.superfighter and 1.5 or 1) * (ply.JumpPowerMul or 1))
 
@@ -516,8 +525,10 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 			cmd:SetSideMove(side_move * inertia_len)
 		end
 
-		mv:SetForwardSpeed(forward_move * inertia_len)
-		mv:SetSideSpeed(side_move * inertia_len)
+		if hg_inertiaenabled:GetBool() then
+			mv:SetForwardSpeed(forward_move * inertia_len)
+			mv:SetSideSpeed(side_move * inertia_len)
+		end
 	end)
 --//
 

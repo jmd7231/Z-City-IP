@@ -17,14 +17,20 @@ local angle
 local hg_coolcamera = ConVarExists("hg_coolcamera") and GetConVar("hg_coolcamera") or CreateConVar("hg_coolcamera", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement", 0, 1)
 local hg_coolcameralerpmult = ConVarExists("hg_coolcameralerpmult") and GetConVar("hg_coolcameralerpmult") or CreateConVar("hg_coolcameralerpmult", 1, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement lerp multiplier", 0, 5)
 function GetCoolCameraBool()
-	return hg_coolcamera:GetBool() and !lply:InVehicle()
+	return hg_coolcamera:GetBool() and !lply:InVehicle() and lply:Alive()
 end
+local vpangs
+
+hook.Add("CreateMove", "asdasdas22", function(cmd)
+	if hg.InGame() or !GetCoolCameraBool() then return end
+
+	hook.Run("InputMouseApply", cmd, 0, 0, (realanglelerp or Angle()) + (vpangs or Angle()))
+end)
 
 local diff = Angle()
 hook.Add("InputMouseApply", "fakeCameraAngles", function(cmd, x, y, angle)
 	local tbl = {}
 	local cc = GetCoolCameraBool()
-	local vpangs
 	if cc then
 		realanglelerp = realanglelerp or angle
 		vpangs = GetViewPunchAngles2() * 1 + GetViewPunchAngles() * 1 + GetViewPunchAngles3() * 1 + GetViewPunchAngles4() * 1
@@ -69,7 +75,7 @@ hook.Add("InputMouseApply", "fakeCameraAngles", function(cmd, x, y, angle)
 		angle = realanglelerp + vpangs
 		if !IsValid(lply.FakeRagdoll) then angle[1] = math.Clamp(angle[1], -89, 89) end
 		realangle = realangle + diff
-		diff = LerpAngleFT(0.01, diff, angle_zero)
+		diff = LerpAngleFT(0.02 / game.GetTimeScale(), diff, angle_zero)
 		cmd:SetViewAngles(angle)
 	else
 		cmd:SetViewAngles(angle)
@@ -191,12 +197,12 @@ hook.Add("HG.InputMouseApply", "fakeCameraAngles2", function(tbl)
 end)
 
 fakeTimer = fakeTimer or nil
-local hg_cshs_fake = ConVarExists("hg_cshs_fake") and GetConVar("hg_cshs_fake") or CreateConVar("hg_cshs_fake", 0, FCVAR_ARCHIVE, "Toggle C'SHS-like ragdoll camera view", 0, 1)
-local hg_firstperson_death = ConVarExists("hg_firstperson_death") and GetConVar("hg_firstperson_death") or CreateClientConVar("hg_firstperson_death", "0", "Toggle first-person death camera view", true, false, 0, 1)
-local hg_firstperson_ragdoll = ConVarExists("hg_firstperson_ragdoll") and GetConVar("hg_firstperson_ragdoll") or CreateConVar("hg_firstperson_ragdoll", 0, FCVAR_ARCHIVE, "Toggle first-person ragdoll camera view", 0, 1)
-local hg_fov = ConVarExists("hg_fov") and GetConVar("hg_fov") or CreateClientConVar("hg_fov", "70", true, false, "Change first-person field of view", 75, 100)
-local hg_gopro = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like camera view", 0, 1)
-local hg_thirdperson = ConVarExists("hg_thirdperson") and GetConVar("hg_thirdperson") or CreateConVar("hg_thirdperson", 0, FCVAR_REPLICATED, "Toggle third-person camera view", 0, 1)
+local hg_cshs_fake = CreateConVar("hg_cshs_fake", "0", FCVAR_ARCHIVE, "Toggle C'SHS-like ragdoll camera view", 0, 1)
+local hg_firstperson_death = CreateClientConVar("hg_firstperson_death", "0", true, false, "Toggle first-person death camera view", 0, 1)
+local hg_firstperson_ragdoll = CreateConVar("hg_firstperson_ragdoll", "0", FCVAR_ARCHIVE, "Toggle first-person ragdoll camera view", 0, 1)
+local hg_fov = CreateClientConVar("hg_fov", "70", true, false, "Change first-person field of view", 75, 100)
+local hg_gopro = CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like camera view", 0, 1)
+local hg_thirdperson = CreateConVar("hg_thirdperson", "0", FCVAR_REPLICATED, "Toggle third-person camera view", 0, 1)
 
 local k = 0
 local wepPosLerp = Vector(0,0,0)
@@ -374,9 +380,14 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 
 	view = hook.Run("Camera", ply, view.origin, view.angles, view, vector_origin) or view
 	
-	if GetCoolCameraBool() then
-		view.angles = realangle + GetViewPunchAngles() * 0.2 - vpang
+	if GetCoolCameraBool() and !hg_cshs_fake:GetBool() and ply:Alive() then
+		local angcool = realangle + GetViewPunchAngles() * 0.2 - vpang
+		view.angles = LerpAngle(deathlerp,angcool,deathLocalAng)
+		view.angles:RotateAroundAxis(view.angles:Up(),-LookX)
+		view.angles:RotateAroundAxis(view.angles:Right(),-LookY)
 		view.angles[3] = view.angles[3]
+	else
+		view.angles = view.angles + GetViewPunchAngles() * 0.2
 	end
 
 	local wep = ply:GetActiveWeapon()

@@ -360,7 +360,7 @@ hg.Accessories = {
         fempos = {Vector(-1,-0.8,0),Angle(180,105,90),1.05},
         skin = 0,
         norender = true,
-        disallowinappearance = true,
+        placement = "face",
         bonemerge = true,
         name = "Arctic Balaclava"
     },
@@ -373,7 +373,7 @@ hg.Accessories = {
         fempos = {Vector(-0.6,-0.6,0),Angle(180,100,90),0.95},
         skin = 0,
         norender = true,
-        disallowinappearance = true,
+        placement = "face",
         bonemerge = true,
         name = "Phoenix Balaclava"
     },
@@ -809,6 +809,136 @@ hg.Accessories = {
         name = "Welding Glasses"
     },
 
+    ["exclusive orange glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 0,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Orange Glasses"
+    },
+
+    ["exclusive blue glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 1,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Blue Glasses"
+    },
+
+
+    ["exclusive black glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 2,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Black Glasses"
+    },
+
+    ["exclusive white glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 3,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive White Glasses"
+    },
+
+    ["exclusive cyan glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 4,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Cyan Glasses"
+    },
+
+    ["exclusive opaque orange glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 5,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Opaque Orange Glasses"
+    },
+
+    ["exclusive purple glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 6,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Purple Glasses"
+    },
+
+
+    ["exclusive red glasses"] = {
+        model = "models/exclusive_glasses/exclusive_glasses.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.4,0,0),Angle(0,96.774,-89.032),1.02},
+        fempos = {Vector(-1,-1,0),Angle(0,108.387,-92.903),1},
+        skin = 7,
+        norender = true,
+        bonemerge = true,
+        placement = "face",
+        bPointShop = true,
+        isdpoint = false,
+        price = 2500,
+        vpos = Vector(0.4,0,0),
+        name = "Exclusive Red Glasses"
+    },
+
     ["big glasses"] = {
         model = "models/distac/big_ahhh_glassis.mdl",
         bone = "ValveBiped.Bip01_Head1",
@@ -1102,36 +1232,36 @@ hg.Accessories = {
         vpos = Vector(0,0,69),
         name = "MF Doom Mask"
     },
-    -- ["anon mask"] = {
-    --     model = "models/rawjesus/wear/anon.mdl",
-    --     femmodel = "models/rawjesus/wear/anon.mdl",
-    --     bone = "ValveBiped.Bip01_Head1",
-    --     malepos = {Vector(0,-0.8,0),Angle(180,100,90),1},
-    --     fempos = {Vector(-1.2,-0.8,0),Angle(180,100,90),1},
-    --     skin = 0,
-    --     placement = "face",
-    --     norender = true,
-    --     bonemerge = true,
-    --     bPointShop = true,
-    --     price = 6500,
-    --     vpos = Vector(0,0,0),
-    --     name = "Anonymous Mask"
-    -- },
-    -- ["hockey mask"] = {
-    --     model = "models/rawjesus/wear/jason.mdl",
-    --     femmodel = "models/rawjesus/wear/jason.mdl",
-    --     bone = "ValveBiped.Bip01_Head1",
-    --     malepos = {Vector(0.5,-0.8,0),Angle(180,100,90),1},
-    --     fempos = {Vector(-0.5,-0.8,0),Angle(180,100,90),1},
-    --     skin = 0,
-    --     placement = "face",
-    --     norender = true,
-    --     bonemerge = true,
-    --     bPointShop = true,
-    --     price = 7500,
-    --     vpos = Vector(0,0,0),
-    --     name = "Hockey Mask"
-    -- },
+          ["anon mask"] = {
+         model = "models/rawjesus/wear/anon.mdl",
+         femmodel = "models/rawjesus/wear/anon.mdl",
+         bone = "ValveBiped.Bip01_Head1",
+         malepos = {Vector(0,-0.8,0),Angle(180,100,90),1},
+         fempos = {Vector(-1.2,-0.8,0),Angle(180,100,90),1},
+         skin = 0,
+         placement = "face",
+         norender = true,
+         bonemerge = true,
+         bPointShop = true,
+         price = 6500,
+         vpos = Vector(0,0,0),
+         name = "Anonymous Mask"
+     },
+     ["hockey mask"] = {
+         model = "models/rawjesus/wear/jason.mdl",
+         femmodel = "models/rawjesus/wear/jason.mdl",
+         bone = "ValveBiped.Bip01_Head1",
+         malepos = {Vector(0.5,-0.8,0),Angle(180,100,90),1},
+         fempos = {Vector(-0.5,-0.8,0),Angle(180,100,90),1},
+         skin = 0,
+         placement = "face",
+          norender = true,
+         bonemerge = true,
+         bPointShop = true,
+         price = 7500,
+         vpos = Vector(0,0,0),
+         name = "Hockey Mask"
+     },
 
     ["hood"] = {
         model = "models/distac/kapishon2.mdl",
@@ -1198,6 +1328,87 @@ hg.Accessories = {
         name = "Nurse Cap"
     },
 
+    ["cap top kek"] = {
+        model = "models/grinchfox/head_wear/caphat.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(1,0.4,0),Angle(0,-95,-90),1},
+        fempos = {Vector(0,0.1,0),Angle(0,-95,-90),1},
+        skin = 1,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 750,
+        vpos = Vector(0,0,5),
+        name = "Top Kek cap"
+    },
+
+    ["sippas cap"] = {
+        model = "models/grinchfox/head_wear/caphat.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(1,0.4,0),Angle(0,-95,-90),1},
+        fempos = {Vector(0,0.1,0),Angle(0,-95,-90),1},
+        skin = 2,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 750,
+        vpos = Vector(0,0,5),
+        name = "Sippas Cap"
+    },
+
+    ["red hep cap"] = {
+        model = "models/grinchfox/head_wear/caphat.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(1,0.4,0),Angle(0,-95,-90),1},
+        fempos = {Vector(0,0.1,0),Angle(0,-95,-90),1},
+        skin = 3,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 750,
+        vpos = Vector(0,0,5),
+        name = "HEP Cap"
+    },
+
+    ["cap military"] = {
+        model = "models/grinchfox/head_wear/caphat.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(1,0.4,0),Angle(0,-95,-90),1},
+        fempos = {Vector(0,0.1,0),Angle(0,-95,-90),1},
+        skin = 4,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 750,
+        vpos = Vector(0,0,5),
+        name = "Military Cap"
+    },
+
+    ["pac-man cap"] = {
+        model = "models/grinchfox/head_wear/caphat.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(1,0.4,0),Angle(0,-95,-90),1},
+        fempos = {Vector(0,0.1,0),Angle(0,-95,-90),1},
+        skin = 8,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 750,
+        vpos = Vector(0,0,5),
+        name = "Pac-Man Cap"
+    },
+
+
 	["cap payot"] = {
         model = "models/grinchfox/head_wear/jewhat.mdl",
         bone = "ValveBiped.Bip01_Head1",
@@ -1214,6 +1425,97 @@ hg.Accessories = {
         name = "Payot Cap"
     },
 
+	["black bigness cap"] = {
+        model = "models/hat01/hat01.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.9,0),Angle(0,104.516,90),1},
+        fempos = {Vector(-0.1,-0.3,0),Angle(0,100,90),1.02},
+        skin = 0,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 4000,
+        vpos = Vector(0,0,5),
+        name = "Black Bigness Cap"
+    },
+	["Red bigness cap"] = {
+        model = "models/hat01/hat01.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.9,0),Angle(0,104.516,90),1},
+        fempos = {Vector(-0.1,-0.3,0),Angle(0,100,90),1.02},
+        skin = 1,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 4000,
+        vpos = Vector(0,0,5),
+        name = "Red Bigness Cap"
+    },
+	["hipster bigness cap"] = {
+        model = "models/hat01/hat01.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.9,0),Angle(0,104.516,90),1},
+        fempos = {Vector(-0.1,-0.3,0),Angle(0,100,90),1.02},
+        skin = 2,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 4000,
+        vpos = Vector(0,0,5),
+        name = "Hipster Bigness Cap"
+    },
+	["banana bigness cap"] = {
+        model = "models/hat01/hat01.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.9,0),Angle(0,104.516,90),1},
+        fempos = {Vector(-0.1,-0.3,0),Angle(0,100,90),1.02},
+        skin = 3,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 4000,
+        vpos = Vector(0,0,5),
+        name = "Banana Bigness Cap"
+    },
+
+	["palm tree bigness cap"] = {
+        model = "models/hat01/hat01.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.9,0),Angle(0,104.516,90),1},
+        fempos = {Vector(-0.1,-0.3,0),Angle(0,100,90),1.02},
+        skin = 4,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 4000,
+        vpos = Vector(0,0,5),
+        name = "Palm Tree Bigness Cap"
+    },
+	["wiggles bigness cap"] = {
+        model = "models/hat01/hat01.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.9,0),Angle(0,104.516,90),1},
+        fempos = {Vector(-0.1,-0.3,0),Angle(0,100,90),1.02},
+        skin = 5,
+        placement = "head",
+        norender = true,
+        bonemerge = true,
+        bSetColor = false,
+        bPointShop = true,
+        price = 4000,
+        vpos = Vector(0,0,5),
+        name = "Wiggles Bigness Cap"
+    },
 	["burger king crown"] = {
         model = "models/roblox_assets/burger_king_crown.mdl",
         bone = "ValveBiped.Bip01_Head1",
@@ -1310,6 +1612,24 @@ hg.Accessories = {
         vpos = Vector(0,0,63),
         name = "Groove Bandana"
     },
+
+    ["bandana groove"] = {
+        model = "models/fix/grinchfox/gangwrap/gangwrap.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(-63.5,-12,0),Angle(90,10,0),1},
+        fempos = {Vector(-63.6,-12,0),Angle(90,10,0),1},
+        skin = 3,
+        placement = "face",
+        norender = true,
+        bonemerge = false,
+        bSetColor = false,
+        bPointShop = true,
+        isdpoint = false,
+        price = 1400,
+        vpos = Vector(0,0,63),
+        name = "Groove Bandana"
+    },
+
 
     ["bandana crips"] = {
         model = "models/fix/grinchfox/gangwrap/gangwrap.mdl",
@@ -1502,6 +1822,34 @@ hg.Accessories = {
         vpos = Vector(0,0,0),
         SubMat = "distac/41/cap_fire",
         name = "Cool Cap"
+    },
+    ["wrist band"] = {
+        model = "models/biker_accs/biker_accs.mdl",
+        bone = "ValveBiped.Bip01_R_Wrist",
+        malepos = {Vector(-6,0,1),Angle(0,-89,0),1.39},
+        fempos = {Vector(0,-0.003,0),Angle(0,98,0),1.2},
+        skin = 0,
+        placement = "torso",
+        norender = false,
+        bonemerge = true,
+        bPointShop = true,
+        price = 2000,
+        vpos = Vector(0,0,0),
+        name = "Wrist Band"
+    },
+    ["duffel bag"] = {
+        model = "models/robberybag/robberybag.mdl",
+        bone = "ValveBiped.Bip01_Spine2",
+        malepos = {Vector(-8.4,4,-1),Angle(180,-98,-89.032),0.93},
+        fempos = {Vector(0,-0.003,0),Angle(0,98,0),1.2},
+        skin = 0,
+        placement = "torso",
+        norender = false,
+        bonemerge = true,
+        bPointShop = true,
+        price = 2000,
+        vpos = Vector(0,0,0),
+        name = "Duffel Bag"
     },
 }
 

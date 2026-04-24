@@ -110,18 +110,6 @@ local function IsLookingAt(ply, targetVec)
     return ply:GetAimVector():Dot(diff) / diff:Length() >= 0.8
 end
 
-local function IssueKarmaBan(steamID, name, minutes, reason, ply)
-    local banMinutes = math.max(1, math.floor(tonumber(minutes) or 0))
-
-    if ULib and ULib.addBan then
-        ULib.addBan(steamID, banMinutes, reason, name, "System")
-    end
-
-    if IsValid(ply) then
-        ply:Kick(reason)
-    end
-end
-
 hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, harm) 
     local Attacker, Victim = dmgInfo:GetAttacker(), ply
     
@@ -238,12 +226,18 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     
     local guiltadd = karmaExemptVictim and 0 or (amt * 60)
     Attacker.Guilt = (Attacker.Guilt or 0) + guiltadd
-    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - add * math.max(((1 - (zb.GuiltTable[Victim][Attacker] or 0)) / 1),0), -60, zb.MaxKarma)
+    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - add * math.max(((1 - (zb.GuiltTable[Victim][Attacker] or 0)) / 1),0), -10, zb.MaxKarma)
 
     zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + add
 
     if shouldBanGuilt and Attacker.Guilt >= 100 then
-        IssueKarmaBan(Attacker:SteamID(), Attacker:Name(), 30, "Kicked and banned for dealing too much team damage.", Attacker)
+        if ULib and ULib.addBan then
+            ULib.addBan(Attacker:SteamID(), 30, "Kicked and banned for dealing too much team damage.", Attacker:Name(), "System")
+        else
+            Attacker:Ban(30, true)
+            Attacker:Kick("Kicked and banned for dealing too much team damage.")
+        end
+
         PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
     end
 
@@ -269,7 +263,16 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 
             local time = math.Round(60 - karma * 4, 0)
 
-            IssueKarmaBan(steamID, name, time, "Kicked and banned for having too low karma.", Attacker)
+            if ULib and ULib.addBan then
+                ULib.addBan(steamID, time, "Kicked and banned for having too low karma.", name, "System")
+            else
+                RunConsoleCommand("banid", tostring(time), steamID)
+                RunConsoleCommand("writeid")
+
+                if IsValid(Attacker) then
+                    Attacker:Kick("Kicked and banned for having too low karma.")
+                end
+            end
 
             PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
         end)
@@ -379,22 +382,15 @@ hook.Add("ZB_EndRound","savevalues",function()
 end)
 
 hook.Add("ZB_StartRound","NO_HARM",function()
-    local _, cround = CurrentRound()
-
     for i,ply in player.Iterator() do
-        if ply.LastKarmaRound ~= cround then
-            ply.LastKarmaRound = cround
-
-            if (ply.Guilt or 0) < 1 then
-                ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
-            else
-                ply.KarmaGain = 0.75
-            end
-
-            ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
-            ply:SetNetVar("Karma", ply.Karma)
+        if (ply.Guilt or 0) < 1 then
+            ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
+        else
+            ply.KarmaGain = 0.75
         end
 
+        ply.Karma = math.Clamp((ply.Karma or 100) + (ply.KarmaGain or 0.75), 0, zb.MaxKarma)
+        ply:SetNetVar("Karma", ply.Karma)
         //ply:guilt_SetValue( ply.Karma or 100 )
     end
     

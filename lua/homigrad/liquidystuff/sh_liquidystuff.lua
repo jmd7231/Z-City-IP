@@ -57,6 +57,11 @@ end
 if SERVER then
 	util.AddNetworkString("gas particle")
 	util.AddNetworkString("gasoline_path")
+	local gasolinePathNetInterval = CreateConVar("hg_gasolinepath_net_interval", "2", FCVAR_ARCHIVE, "Seconds between gasoline path replication updates.")
+	local gasolinePathNetMaxPoints = CreateConVar("hg_gasolinepath_net_maxpoints", "128", FCVAR_ARCHIVE, "Maximum gasoline path points sent to clients per update.")
+	local gasolinePathHardCap = CreateConVar("hg_gasolinepath_hardcap", "256", FCVAR_ARCHIVE, "Maximum gasoline path points stored on server.")
+	local maxTrackedDrums = CreateConVar("hg_drum_max_tracked", "64", FCVAR_ARCHIVE, "Maximum amount of tracked fuel containers.")
+	local maxVFireEntities = CreateConVar("hg_vfire_max_entities", "96", FCVAR_ARCHIVE, "Maximum active vfire entities created via liquid trails.")
 	
 	local time = CurTime()
 	local CurTime = CurTime
@@ -69,11 +74,21 @@ if SERVER then
 		end
 	end)
 
-	local time2 = CurTime()
-	local ents_FindInSphere = ents.FindInSphere
-	hook.Add("Think", "path_think", function()
-		if time2 > CurTime() then return end
-		time2 = time2 + 1
+		local time2 = CurTime()
+		local nextGasPathNet = CurTime()
+		local nextVFireCountCheck = CurTime()
+		local cachedVFireCount = 0
+		local ents_FindInSphere = ents.FindInSphere
+		local function CanSpawnTrailFire()
+			if nextVFireCountCheck <= CurTime() then
+				nextVFireCountCheck = CurTime() + 1
+				cachedVFireCount = #ents.FindByClass("vfire")
+			end
+			return cachedVFireCount < maxVFireEntities:GetInt()
+		end
+		hook.Add("Think", "path_think", function()
+			if time2 > CurTime() then return end
+			time2 = time2 + 1
 
 		for i, tbl in ipairs(hg.gasolinePath) do
 			local pos, ignited = tbl[1], tbl[2]
@@ -91,22 +106,47 @@ if SERVER then
 					end
 				end
 			
-				for i, obj in ipairs(ents_FindInSphere(pos, 32)) do
-					if obj:GetMoveType() == MOVETYPE_NONE then continue end
-					
-					if IsValid(obj) and (((not obj:IsPlayer()) or (obj:Alive() and obj:GetMoveType() != MOVETYPE_NOCLIP and !IsValid(obj.FakeRagdoll))) and not obj:IsOnFire() and obj:WaterLevel() < 1)  then
-						--obj:Ignite(30 * ((obj.shouldburn or 0) + 1))
-						CreateVFire(obj, obj:GetPos(), -vector_up, 100, tbl[3])
+					if not CanSpawnTrailFire() then continue end
+					for i, obj in ipairs(ents_FindInSphere(pos, 32)) do
+						if obj:GetMoveType() == MOVETYPE_NONE then continue end
+
+						if IsValid(obj) and (((not obj:IsPlayer()) or (obj:Alive() and obj:GetMoveType() != MOVETYPE_NOCLIP and !IsValid(obj.FakeRagdoll))) and not obj:IsOnFire() and obj:WaterLevel() < 1)  then
+							--obj:Ignite(30 * ((obj.shouldburn or 0) + 1))
+							CreateVFire(obj, obj:GetPos(), -vector_up, 100, tbl[3])
 						--CreateVFire(parent, pos, normal, newFeed, spreader)
 					end
 				end
 			end
 		end
 
-		net.Start("gasoline_path")
-		net.WriteTable(hg.gasolinePath)
-		net.Broadcast()
-	end)
+			if nextGasPathNet > CurTime() then return end
+			nextGasPathNet = CurTime() + math.max(gasolinePathNetInterval:GetFloat(), 0.2)
+
+			local maxPoints = math.max(gasolinePathNetMaxPoints:GetInt(), 8)
+			local path = hg.gasolinePath
+			local pathLen = #path
+			if pathLen <= 0 then
+				net.Start("gasoline_path")
+				net.WriteTable(path)
+				net.Broadcast()
+				return
+			end
+
+			if pathLen > maxPoints then
+				local slimPath = {}
+				local startIndex = pathLen - maxPoints + 1
+				for idx = startIndex, pathLen do
+					slimPath[#slimPath + 1] = path[idx]
+				end
+				net.Start("gasoline_path")
+				net.WriteTable(slimPath)
+				net.Broadcast()
+			else
+				net.Start("gasoline_path")
+				net.WriteTable(path)
+				net.Broadcast()
+			end
+		end)
 
 	hook.Add("PostCleanupMap","removetrailsofevidence",function()
 		hg.drums = {}
@@ -167,14 +207,17 @@ if SERVER then
 
 				tr = util.TraceLine(tr)
 				
-				if tr.Hit and tr.Entity == Entity(0) then
-					if (drum.lastFireCreated or 0) < CurTime() then
-						drum.lastFireCreated = CurTime() + 0.2
-
-						table.insert(hg.gasolinePath, {tr.HitPos, false})
-					end
-				elseif tr.Entity != Entity(0) then
-					tr.Entity.shouldburn = tr.Entity.shouldburn and tr.Entity.shouldburn + 1 or 1
+					if tr.Hit and tr.Entity == Entity(0) then
+						if (drum.lastFireCreated or 0) < CurTime() then
+							drum.lastFireCreated = CurTime() + 0.2
+							table.insert(hg.gasolinePath, {tr.HitPos, false})
+							local hardCap = math.max(gasolinePathHardCap:GetInt(), 32)
+							while #hg.gasolinePath > hardCap do
+								table.remove(hg.gasolinePath, 1)
+							end
+						end
+					elseif tr.Entity != Entity(0) then
+						tr.Entity.shouldburn = tr.Entity.shouldburn and tr.Entity.shouldburn + 1 or 1
 				end
 
 				net.Start("gas particle")
@@ -203,6 +246,17 @@ if SERVER then
 
 			hg.drums[i] = nil
 		end
+	end)
+
+	hook.Add("OnEntityCreated", "drum_spawn_limit", function(ent)
+		timer.Simple(0, function()
+			if not IsValid(ent) then return end
+			if not whitelistModels[ent:GetModel()] then return end
+			if table.Count(hg.drums) <= maxTrackedDrums:GetInt() then return end
+			if ent:GetClass() == "prop_physics" then
+				ent:Remove()
+			end
+		end)
 	end)
 
 	hook.Add("EntityRemoved", "drum_removed", function(ent)
