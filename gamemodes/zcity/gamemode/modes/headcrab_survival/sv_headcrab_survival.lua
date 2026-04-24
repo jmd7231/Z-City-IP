@@ -49,6 +49,12 @@ local function GetRandomPlayerLoadout()
 	return loadouts[math.random(#loadouts)]
 end
 
+local function ResetTraitorState(ply)
+	ply.isTraitor = false
+	ply.MainTraitor = false
+	ply.SubRole = nil
+end
+
 local function GiveRandomLoadout(ply)
 	local loadout = GetRandomPlayerLoadout()
 	ply:Give("weapon_hands_sh")
@@ -85,6 +91,7 @@ function MODE:Intermission()
 
 		ApplyAppearance(ply)
 		ply:SetupTeam(0) -- no T/CT split in this mode
+		ResetTraitorState(ply)
 	end
 end
 
@@ -158,7 +165,6 @@ function MODE:SpawnHeadcrabAt(pos)
 
 	self.TotalHeadcrabsSpawned = self.TotalHeadcrabsSpawned + 1
 	self.ActiveHeadcrabs = self.ActiveHeadcrabs + 1
-	self.NextDifficultySpike = (self.NextDifficultySpike or 0) + 1
 
 	crab:CallOnRemove("HeadcrabSurvivalTrack_" .. crab:EntIndex(), function()
 		if not MODE then return end
@@ -212,6 +218,7 @@ function MODE:RoundStart()
 		if not ply:Alive() then continue end
 		ply:SetSuppressPickupNotices(true)
 		ply.noSound = true
+		ResetTraitorState(ply)
 		GiveRandomLoadout(ply)
 		zb.GiveRole(ply, "Survivor", Color(100, 210, 100))
 
@@ -257,6 +264,10 @@ function MODE:EndRound()
 end
 
 function MODE:CanSpawn()
+end
+
+function MODE:PlayerSpawn(ply)
+	ResetTraitorState(ply)
 end
 
 function MODE:GiveWeapons()
