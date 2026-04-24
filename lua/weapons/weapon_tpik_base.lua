@@ -302,7 +302,7 @@ function SWEP:SetHandPos(noset)
 
     local ent = hg.GetCurrentCharacter(ply)
 
-	local bones = hg.TPIKBonesLH
+	local bones = hg.TPIKBonesLH or {}
 
     local ply_spine_index = ent:LookupBone("ValveBiped.Bip01_Spine4")
     if !ply_spine_index then return end
@@ -316,13 +316,16 @@ function SWEP:SetHandPos(noset)
 
 	self.rhandik = self.setrh
 	self.lhandik = self.setlh and (ply:GetTable().ChatGestureWeight < 0.1)
+	if #bones == 0 then
+		self.lhandik = false
+	end
 
     local rhmat, lhmat = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_R_Hand")), ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_L_Hand"))
 
 	ply.rhold = rhmat
 	ply.lhold = lhmat
 
-	if self.lhandik and (ent == ply or hg.KeyDown(ply,IN_USE) or (ply:GetNetVar("lastFake",0) > CurTime())) and hg.CanUseLeftHand(ply) then
+	if self.lhandik and #bones > 0 and (ent == ply or hg.KeyDown(ply,IN_USE) or (ply:GetNetVar("lastFake",0) > CurTime())) and hg.CanUseLeftHand(ply) then
 		for _, bone in ipairs(bones) do
 			local wm_boneindex = wm:LookupBone(bone)
 			if !wm_boneindex then continue end
@@ -350,9 +353,12 @@ function SWEP:SetHandPos(noset)
 		end
 	end
 
-	local bones = hg.TPIKBonesRH
+	local bones = hg.TPIKBonesRH or {}
+	if #bones == 0 then
+		self.rhandik = false
+	end
 
-	if self.rhandik and (ent == ply or hg.KeyDown(ply,IN_USE) or (ply:GetNetVar("lastFake",0) > CurTime())) then
+	if self.rhandik and #bones > 0 and (ent == ply or hg.KeyDown(ply,IN_USE) or (ply:GetNetVar("lastFake",0) > CurTime())) then
 		for _, bone in ipairs(bones) do
 			local wm_boneindex = wm:LookupBone(bone)
 			if !wm_boneindex then continue end
