@@ -35,6 +35,12 @@ end
 
 SWEP.supportTPIK = true
 
+
+local EntityMeta = FindMetaTable("Entity")
+if EntityMeta and not EntityMeta.PullLHTowards then
+	function EntityMeta:PullLHTowards() end
+end
+
 SWEP.weaponPos = Vector(0,0,0)
 SWEP.weaponAng = Angle(0,0,0)
 
