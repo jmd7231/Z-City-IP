@@ -641,6 +641,11 @@ function hg.MainTPIKFunction(ent, ply, wpn)
         end
         
         //local systime = SysTime()
+        if IsValid(wpn) then
+            wpn.lhandik = false
+            wpn.rhandik = false
+        end
+
         if wpn.SetHandPos then
             wpn:SetHandPos()
         end
@@ -1284,8 +1289,6 @@ function hg.DoTPIK(ply, ent)
         end
     end
     
-    self.lhandik = false
-    self.rhandik = false
 end
 
 hg.IKSolve = solve
