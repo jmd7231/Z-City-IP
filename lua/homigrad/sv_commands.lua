@@ -204,12 +204,13 @@ if SERVER then
         target:Notify(message, 0)
         ply:ChatPrint("Sent notification to " .. target:GetName() .. ": " .. message)
 
-    end, 2, "ник игрока сообщение"}
+    end, 2, "name; message"}
 
 	COMMANDS.setmodel = {function(ply, args)
 		if not ply:IsAdmin() then return end
 		local plya = #args > 1 and args[1] or ply:Name()
 		local mdl = #args > 1 and args[2] or args[1]
+
 		for i, ply2 in pairs(player.GetListByName(plya)) do
 			if ply2:Alive() then
 				local Appearance = ply2.CurAppearance or hg.Appearance.GetRandomAppearance()

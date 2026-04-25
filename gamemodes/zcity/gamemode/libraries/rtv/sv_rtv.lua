@@ -174,15 +174,13 @@ function zb.EndRTV()
     if endStarted then return end
 
     local winmap = table.GetWinningKey(votes)
-    if not winmap then return end
+    if not winmap then
+		winmap = "random"
+	end
 
     if winmap == "random" then
         winmap = mappull[math.random(#mappull)]
     end
-
-	if not winmap then
-		winmap = "gm_construct"
-	end
 
     local mapFamily = GetMapFamily(winmap)
     
@@ -487,8 +485,7 @@ function zb.CheckRTVVotes(needPrint)
     
     return false
 end
-
-COMMANDS.rtv = {function(ply, args)
+local function rtv(ply, args)
     --print(zb.votestarted)
 	if zb.votestarted then
 		zb.RTVMenu(ply)
@@ -543,8 +540,11 @@ COMMANDS.rtv = {function(ply, args)
 
     if zb.CheckRTVVotes(true) then
         return
-    end
-end, 0}
+    end 
+end
+
+COMMANDS.rtv = {rtv, 0}
+COMMANDS.кем = {rtv, 0}
 
 hook.Add("ShutDown", "ResetRTVVotesOnMapChange", zb.ClearRTVVotes)
 hook.Add("PostGamemodeLoaded", "InitializeRTVSystem", function()

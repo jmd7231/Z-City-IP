@@ -9,8 +9,7 @@ local allowed = {
 	'А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И', 'Й', 'К', 'Л', 'М', 'Н', 'О', 'П', 'Р', 'С', 'Т', 'У', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ы', 'Ь', 'Э', 'Ю', 'Я',
 	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-	'1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-q}
+}
 local function IsInvalidName(name)
 	local trimmedName = string.Trim(name)
 	if trimmedName == "" then return true end
@@ -192,33 +191,7 @@ hg.Appearance.Clothes[1] = {
 	casual = "models/humans/male/group01/casual",
 	sweater_xmas = "models/humans/male/group01/sweater",
 	worker = "models/humans/male/group01/worker",
-        party  = "models/humans/male/group01/formal_partly",
-        comfy = "models/humans/male/group01/comfy_colorable",
-        mail = "models/humans/male/group01/mailman_colorable",
-        wolker = "models/humans/male/group01/wolker_colorable",
-        farmer = "models/humans/male/group01/farmer_colorable",
-        camo = "models/humans/male/group01/camoflage_colorable",
-        warpoint = "models/humans/male/group01/warpoint_jacket_colorable",
-        adidas = "models/humans/male/group01/adidas_colorable",
-        rama = "models/humans/male/group01/rama_colorable",
-        sport = "models/humans/male/group01/zekee_sport_clothes_colorable",
-        jacket = "models/humans/male/group01/rockmountain_shirt_colorable",
-        hoodie = "models/humans/male/group01/sport1_colorable",
-        sweatshirt = "models/humans/male/group01/sport4_colorable",
-        bomber = "models/humans/male/group01/alphaindustry_colorable",
-        vest = "models/humans/male/group01/formal_vest_colorable",
-        homeless = "models/humans/male/group01/homeless_colorable",
-        miami = "models/humans/male/group01/miami_colorable",
-        jock = "models/humans/male/group01/old_sport_colorable",
-        winter = "models/humans/male/group01/winter_colorable",
-        vest2 = "models/humans/male/group01/formal_only_vest_colorable",
-        jewish = "models/humans/slav/dobrogradstuff/clothes/evrei",
-        aphex = "models/humans/male/fun/aphex_white_colorable", 
-        destriped = "models/humans/male/group01/franklin_colorable",
-        wedding = "models/humans/male/group01/formal_white",
-	yakudza = "models/humans/male/group01/yakudza_colorable",
-	yakuzasuit = "models/humans/male/group01/yakudza_suit_colorable",
- }
+}
 
 hg.Appearance.Clothes[2] = {
 	normal = "models/humans/female/group01/normal",
@@ -229,17 +202,6 @@ hg.Appearance.Clothes[2] = {
 	cold = "models/humans/female/group01/cold",
 	casual = "models/humans/female/group01/casual",
 	sweater_xmas = "models/humans/female/group01/sweater",
-        party = "models/humans/female/group01/formal_partly",
-        official = "models/humans/female/group01/official_colorable",
-        mail = "models/humans/female/group01/mailwomen_colorable",
-        wolker = "models/humans/female/group01/wolker_colorable",
-        jacket = "models/humans/female/group01/rockmountain_shirt_colorable",
-        adidas = "models/humans/female/group01/adidas_colorable",
-        hoodie = "models/humans/female/group01/sport1_colorable",
-        rama = "models/humans/female/group01/rama_colorable",
-        camo = "models/humans/female/group01/camoflage_colorable",	
-        sweatshirt = "models/humans/female/group01/sport4_colorable",	
-        warpoint = "models/humans/female/group01/warpoint_jacket_colorable",	
 }
 
 hg.Appearance.ClothesDesc = {
@@ -247,22 +209,22 @@ hg.Appearance.ClothesDesc = {
 		desc = "Garry's Mod default citizen outfit"
 	},
 	formal = {
-		desc = "from original Jack's Homicide gamemode.\nForever."
+		desc = "from orignial Jack's Homicide gamemode.\nForever."
 	},
 	plaid = {
-		desc = "from original Jack's Homicide gamemode.\nForever."
+		desc = "from orignial Jack's Homicide gamemode.\nForever."
 	},
 	striped = {
-		desc = "from original Jack's Homicide gamemode.\nForever."
+		desc = "from orignial Jack's Homicide gamemode.\nForever."
 	},
 	young = {
-		desc = "from original Jack's Homicide gamemode.\nForever."
+		desc = "from orignial Jack's Homicide gamemode.\nForever."
 	},
 	cold = {
-		desc = "from original Jack's Homicide gamemode.\nForever."
+		desc = "from orignial Jack's Homicide gamemode.\nForever."
 	},
 	casual = {
-		desc = "from original Jack's Homicide gamemode.\nForever."
+		desc = "from orignial Jack's Homicide gamemode.\nForever."
 	},
 	sweater_xmas = {
 		desc = "by Wontairr from steam workshop\nRMB to open link",
@@ -271,51 +233,6 @@ hg.Appearance.ClothesDesc = {
 	worker = {
 		desc = "by Chervo93 from steam workshop\nRMB to open link",
 		link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3540506879"
-	},
-	party = {
-		desc = "Given to us by Griggs, Inverted Formal perfect for a party, from original Jack's Homicide Gamemode.\nForever."
-	},
-	adidas = {
-		desc = "An Adidas Tracksuit. \nColorable."
-	},
-	bomber = {
-		desc = "A bomber jacket. \nColorable."
-	},
-	camo = {
-		desc = "A camoflauge war-style outfit. \nColorable."
-	},
-	comfy = {
-		desc = "A plaid comfy jumper. \nColorable."
-	},
-	farmer = {
-		desc = "A nice set of overalls for a inbredded cowboy. \nColorable."
-	},
-	hoodie = {
-		desc = "A nice hoodie for someone who is a Sosman, could be red... \nColorable."
-	},
-	mail = {
-		desc = "Similar to comfy, but is now sharp and collarful, perfect for someone who delivers mail. \nColorable."
-	},
-	rama = {
-		desc = "A chest-revealing leather jacket for someone from the 80's. \nColorable."
-	},
-	sweatshirt = {
-		desc = "A plain-shirt for sweating in. \nColorable."
-	},
-	sport = {
-		desc = "A track-suit for working out on a treadmill, Z-City players don't really do this. \nColorable."
-	},
-	warpoint = {
-		desc = "A expensive fluffy jacket, perfect for someone out in the Cold. \nColorable."
-	},
-	warpoint = {
-		desc = "A plain version of Farmer, perfect for someone who sings like Elvis, or a fat person. \nColorable."
-	},
-	offical = {
-		desc = "A jacket that NPC's wore in Grand Theft Auto 4. \nColorable."
-	},
-	jewish = {
-		desc = "A robe for a jew like Bhavinn. \nNot Colorable."
 	},
 }
 
