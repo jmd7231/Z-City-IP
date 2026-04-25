@@ -393,7 +393,14 @@ function zb.WeightedChanceMode(modes_chances)
 			end
 		end
 
-		return "hmcd"
+		local homicidemodes = {
+			"soe",
+			"wildwest",
+			"standard",
+			"gunfreezone",
+		}
+
+		return table.Random(homicidemodes)
 	else
 		for name, chance in RandomPairs(modes_chances) do
 			count = count + (newchancestbl[name] or chance) * 100
