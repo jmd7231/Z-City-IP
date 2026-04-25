@@ -591,7 +591,7 @@ MODE.Types.soe = {
 		inv["Weapons"]["hg_flashlight"] = true
 		inv["Weapons"]["hg_sling"] = true
 		ply:SetNetVar("Inventory", inv)
-
+	
 		ply:SetPlayerClass("nationalguard")
 		local gun = ply:Give("weapon_fn45")
 		ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
@@ -645,8 +645,6 @@ function MODE:SubModes()
 	return modes
 end
 
-local homicide_traitoramount = ConVarExists("homicide_traitoramount") and GetConVar("homicide_traitoramount") or CreateConVar("homicide_traitoramount", 1, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Homicide Only: Determine how many traitors should innocents face in homicide.", 1, 20)
-
 function MODE:Intermission()
 	game.CleanUpMap()
 
@@ -679,19 +677,22 @@ function MODE:Intermission()
 	MODE.TraitorFrequency = nil
 	MODE.TraitorWord = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 	MODE.TraitorWordSecond = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
-	local traitors_needed = 1
-	local secondTraitorMinPlayers = 13
 
+	// local homicide_traitoramount = ConVarExists("homicide_traitoramount") and GetConVar("homicide_traitoramount") or CreateConVar("homicide_traitoramount",1,FCVAR_SERVER_CAN_EXECUTE,"Homicide Only: Determine how many traitors should innocents face in homicide.",1,20)
+	// local traitors_needed = homicide_traitoramount:GetInt()
+
+	if player_count >= 13 then
+		 traitors_needed = 2
+	else
+		 traitors_needed = 1
+	end
+	
 	if(MODE.ShouldStartRoleRound())then
 		traitors_needed = math.ceil(player_count / 9)
-
-		if(player_count >= secondTraitorMinPlayers and math.random(1, 8) == 1)then
+		
+		if(player_count > 8 and math.random(1, 8) == 1)then
 			traitors_needed = traitors_needed + 1
 		end
-	end
-
-	if player_count < secondTraitorMinPlayers then
-		traitors_needed = 1
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed

@@ -354,8 +354,7 @@ if SERVER then
 	Life and feed
 	---------------------------------------------------------------------------]]
 	function ENT:ChangeLife(newLife)
-		local maxLife = vFireStateToLife(self.stateDown or vFireMaxLife) or vFireMaxLife
-		self.life = math.min(newLife, maxLife)
+		self.life = math.min(newLife, vFireStateToLife(self.stateDown or vFireMaxLife))
 	end
 
 	function ENT:GiveLife(fire2, amount)

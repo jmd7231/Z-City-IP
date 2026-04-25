@@ -16,20 +16,6 @@ local ang5 = Angle(0,0,0)
 local ang3 = Angle(0,0,180)
 local clamp = math_Clamp
 
-local function RagdollOwner(ent)
-	return hg and hg.RagdollOwner and hg.RagdollOwner(ent)
-end
-
-local function QueueCollisionRulesChanged(ent)
-	if not IsValid(ent) then return end
-	timer.Simple(0, function()
-		if IsValid(ent) then
-			ent:CollisionRulesChanged()
-		end
-	end)
-end
-
-
 local function WhomILookinAt(ply, cone, dist)
 	local CreatureTr, ObjTr, OtherTr
 	for i = 1, 150 * cone do
@@ -452,12 +438,12 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 
 		if not self.CarryEnt:GetCustomCollisionCheck() then
 			self.CarryEnt:SetCustomCollisionCheck(true)
-			QueueCollisionRulesChanged(self.CarryEnt)
-			QueueCollisionRulesChanged(owner)
+			self.CarryEnt:CollisionRulesChanged()
+			owner:CollisionRulesChanged()
 
 			self.CarryEnt:CallOnRemove("removenarsla",function()
 				if not IsValid(owner) then return end
-				QueueCollisionRulesChanged(owner)
+				owner:CollisionRulesChanged()
 				owner:SetNetVar("carryent",nil)
 				owner:SetNetVar("carrybone",nil)
 				owner:SetNetVar("carrymass",nil)
@@ -468,8 +454,8 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 		end
 	else
 		if IsValid(self.CarryEnt) and self.CarryEnt:GetCustomCollisionCheck() then
-			QueueCollisionRulesChanged(self.CarryEnt)
-			QueueCollisionRulesChanged(owner)
+			self.CarryEnt:CollisionRulesChanged()
+			owner:CollisionRulesChanged()
 			//self.CarryEnt:SetCustomCollisionCheck(false)
 		end
 

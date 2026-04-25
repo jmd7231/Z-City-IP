@@ -128,8 +128,7 @@ end
 local lang1, lang2 = Angle(0, -10, 0), Angle(0, 10, 0)
 function SWEP:Animation()
 	local owner = self:GetOwner()
-	if not IsValid(owner) or type(owner.GetAimVector) ~= "function" then return end
-	local aimvec = owner:GetAimVector()
+	local aimvec = self:GetOwner():GetAimVector()
 	local hold = self:GetHolding()
 	if (owner.zmanipstart ~= nil and not owner.organism.larmamputated) then return end
 	self:BoneSet("r_upperarm", vector_origin, Angle(30 - hold / 4, -30 + hold / 2 + 20 * aimvec[3], 5 - hold / 3.5))

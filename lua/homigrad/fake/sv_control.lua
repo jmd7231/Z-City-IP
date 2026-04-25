@@ -221,7 +221,7 @@ hook.Add("Think", "Fake", function()
 
 						physobj:Wake()
 						
-						if hg.RagdollCombatInUse(ply) and ply:KeyDown(IN_JUMP) then
+						if ply:KeyDown(IN_JUMP) then
 							if !ply.jumpedfake then
 								ply.jumpedfake = true
 

@@ -51,31 +51,22 @@ SWEP.FakeReloadEvents = {
 	end,
 	[0.43] = function( self ) 
 		if CLIENT and self:Clip1() < 1 then
-			local createMag = hg and hg.CreateMag
-			if type(createMag) ~= "function" then return end
-			local ent = createMag(self, Vector(0,15,-15))
-			if not IsValid(ent) then return end
-			if type(ent.SetSubMaterial) ~= "function" or type(ent.ManipulateBoneScale) ~= "function" or type(ent.SetBodygroup) ~= "function" or type(ent.GetBoneCount) ~= "function" then return end
-
+			local ent = hg.CreateMag( self, Vector(0,15,-15) )
 			ent:SetSubMaterial(1,"models/zcity/skins/walther_p22/classic/walther1")
 			ent:SetSubMaterial(0,"models/zcity/skins/walther_p22/classic/walther2")
-			local boneCount = ent:GetBoneCount() or 0
-			for i = 0, math.max(boneCount - 1, 0) do
+			for i = 0, ent:GetBoneCount() - 1 do
 				ent:ManipulateBoneScale(i, vector_origin)
 			end
 			ent:ManipulateBoneScale(92, vector_full)
 			ent:SetBodygroup(1,1)
 
-			local phys = ent.GetPhysicsObject and ent:GetPhysicsObject()
+			local phys = ent:GetPhysicsObject()
 
 			if IsValid(phys) then
 				phys:AddAngleVelocity(Vector(650,0,0))
 			end
 
-			local wm = self:GetWM()
-			if IsValid(wm) and wm.ManipulateBoneScale then
-				wm:ManipulateBoneScale(92, vector_origin)
-			end
+			self:GetWM():ManipulateBoneScale(92, vector_origin)
 		end 
 	end,
 	[0.55] = function( self ) 

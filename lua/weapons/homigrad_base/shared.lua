@@ -318,9 +318,9 @@ end
 function SWEP:IsSprinting()
 	local ply = self:GetOwner()
 	if hg_aimtoshoot:GetBool() then
-		return not ply:IsNPC() and (self:KeyDown(IN_SPEED) and ply:GetVelocity():LengthSqr() > 150 * 150) or not self:KeyDown(IN_ATTACK2) and not IsValid(ply.FakeRagdoll)
+		return not ply:IsNPC() and (self:KeyDown(IN_SPEED) and ply:GetVelocity():LengthSqr() > 28900) or not self:KeyDown(IN_ATTACK2) and not IsValid(ply.FakeRagdoll)
 	else
-		return not ply:IsNPC() and self:KeyDown(IN_SPEED) and ply:GetVelocity():LengthSqr() > 150 * 150 and not IsValid(ply.FakeRagdoll)
+		return not ply:IsNPC() and self:KeyDown(IN_SPEED) and ply:GetVelocity():LengthSqr() > 28900 and not IsValid(ply.FakeRagdoll)
 	end
 end
 
@@ -858,7 +858,7 @@ if CLIENT then
 			local clip = self:Clip1()
 			local owner = self:GetOwner()
 			local shoot = CurTime() - self:LastShootTime()
-			local ammo = (IsValid(owner) and owner.GetAmmoCount) and owner:GetAmmoCount(self:GetPrimaryAmmoType()) or 0
+			local ammo = owner:GetAmmoCount(self:GetPrimaryAmmoType())
 			local magCount = self.AnimInsert and ammo or math.ceil(ammo / clipsize)
 			local posX = scrW*0.75
 			local posX2 = scrW*0.8
@@ -1117,7 +1117,7 @@ end
 
 local hg_slings = ConVarExists("hg_slings") and GetConVar("hg_slings") or CreateConVar("hg_slings", 0, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Toggle sling system", 0, 1)
 
-local vpang1 = Angle(1, -1.5, 2) / 2
+local vpang1, vpang2 = (Angle(1,-1.5,-1.8) / 1.5), (Angle(-1,1.5,1.8) / 1.5)
 local bashvpang = Angle(-10, 0, 0)
 local gamemod = engine.ActiveGamemode()
 function SWEP:CoreStep()
@@ -1350,17 +1350,19 @@ function SWEP:CoreStep()
 		if self:IsZoom() then
 			if not self.zoomsound then
 				//self:PlaySnd({"pwb2/weapons/p90/cloth3.wav",60,80,120},false,CHAN_BODY)
-				sound.Play("pwb2/weapons/p90/cloth3.wav", self:GetPos(), 55)
+				sound.Play("pwb2/weapons/p90/cloth3.wav", self:GetPos(), 65)
 				self.zoomsound = true
-				
 				if self:IsClient() then
-					ViewPunch2(vpang1)
+					--ViewPunch2(vpang1)
 				end
 			end
 		else
 			if self.zoomsound then
-				sound.Play("pwb2/weapons/matebahomeprotection/mateba_cloth.wav", self:GetPos(), 55)
+				sound.Play("pwb2/weapons/matebahomeprotection/mateba_cloth.wav", self:GetPos(), 65)
 				//self:PlaySnd({"pwb2/weapons/matebahomeprotection/mateba_cloth.wav",60,80,120},false,CHAN_BODY)
+				if self:IsClient() then
+					--ViewPunch2(vpang2)
+				end
 			end
 			self.zoomsound = nil
 		end
@@ -1512,37 +1514,32 @@ hg.postureFunctions2 = {
 	end,
 	[3] = function(self,ply,force)
 		if self:IsZoom() and not force then return end
-		local isLocal = true--self:IsLocal2()
+		local isLocal = self:IsLocal2()
 		local pistolRun = self:IsPistolHoldType() or self.CanEpicRun
 
 		local epicRunZ = self.EpicRunPos and self.EpicRunPos[3]
 		local epicRunY = self.EpicRunPos and self.EpicRunPos[2]
 		local epicRunX = self.EpicRunPos and self.EpicRunPos[1]
 
-		local posturehold = !self:IsSprinting()
-		local running = posturehold or ply:GetVelocity():LengthSqr() > 150 * 150
-		
-		if !running then return end
+		local running = ply:GetVelocity():LengthSqr() > 150 * 150
 
-		local runmul = posturehold and 1 or math.Clamp((ply:GetVelocity():Length() - 150) / 300, 0, 1) * (1 - math.sin((self.reload and (self.reload - CurTime()) / self.StaminaReloadTime or 1) * math.pi))
-		
-		self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] - (3 + (pistolRun and (isLocal and (epicRunZ or (running and 6 or 2)) - 6 or 4) or (isLocal and -2 or -6 + (ply:GetNWFloat("InLegKick", 0) and 5 or 0)) )) * runmul
-		self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - (-7 + (pistolRun and (isLocal and (epicRunY or (running and 6 or 4)) + 3 or 8 + (ply:GetNWFloat("InLegKick", 0) and -5 or 0)) or (isLocal and 8 or 2 + (ply:GetNW2Float("InLegKick", 0) and 8 or 0)) ) + 3 * math.Clamp(-ply:EyeAngles()[1] / 20, self:IsPistolHoldType() and -1 or -1, 0)) * runmul
-		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + (3 + (pistolRun and (isLocal and (epicRunX or 2) or 0) - 2 or 0)) * runmul
+		self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] - 3 + (pistolRun and (isLocal and (epicRunZ or (running and 6 or 2)) or 4) or (isLocal and -2 or -6 + (ply:GetNWFloat("InLegKick", 0) and 5 or 0)) )
+		self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - 5 + (pistolRun and (isLocal and (epicRunY or (running and 6 or 4)) or 8 + (ply:GetNWFloat("InLegKick", 0) and -5 or 0)) or (isLocal and 8 or 2 + (ply:GetNW2Float("InLegKick", 0) and 8 or 0)) ) + 3 * math.Clamp(-ply:EyeAngles()[1] / 20, self:IsPistolHoldType() and -2 or -2, 0)
+		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 3 + (pistolRun and (isLocal and (epicRunX or 2) or 0) or 0)
 		
 		if not pistolRun then
-			self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + -9 * runmul
-			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + -6 * runmul
-			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + -3 * runmul
-			self.AdditionalAngPreLerp:Add(angPostureHighReady * runmul)
+			self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + -9
+			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + -6
+			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + -3
+			self.AdditionalAngPreLerp:Add(angPostureHighReady)
 			if running and (isLocal or SERVER) then
-				self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + 4 * runmul
-				self.AdditionalAngPreLerp:Add(angRunning * runmul)
+				self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + 4
+				self.AdditionalAngPreLerp:Add(angRunning)
 			end
 		end
 
 		--self.weaponAng:Add((self:IsPistolHoldType() and angPosture7) or (ply:IsFlagSet(FL_ANIMDUCKING) and angPosture8 or angPosture4))
-		self.AdditionalAngPreLerp:Add(((self:IsPistolHoldType() or self.CanEpicRun) and angPosture3pistol or angPosture3) * runmul)
+		self.AdditionalAngPreLerp:Add( (self:IsPistolHoldType() or self.CanEpicRun) and angPosture3pistol or angPosture3)
 		
 	end,
 	[4] = function(self,ply,force)
@@ -1705,8 +1702,7 @@ function SWEP:GetAdditionalValues()
 		if ply.posture and ply.posture >= 7 then
 			ply.posture = 2
 		end
-		
-		--self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - (isSprinting(ply) and 10 or 4) * (isSprinting(ply) and 1.2 or math.Clamp((-ply:EyeAngles()[1] + 90) / 45, 0.2, 1))
+		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - (isSprinting(ply) and 10 or 4) * (isSprinting(ply) and 1.2 or math.Clamp((-ply:EyeAngles()[1] + 90) / 45, 0.2, 1))
 	end
 
 	local huya = false//animpos > (self:IsPistolHoldType() and 0.7 or 0.39)
@@ -1733,29 +1729,10 @@ function SWEP:GetAdditionalValues()
 	self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + animpos * -10
 	self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + animpos * -20
 
-	if self:IsLocal2() and self:IsZoom() then
-		self.k = self.k or 0
-		self.ZoomAnimLerp = LerpFT(0.05, self.ZoomAnimLerp or 0, self.k > 0.2 and self.k < 0.6 and 1 or 0)
-		self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + math.ease.InOutBack(self.ZoomAnimLerp) * 3
-		self.AdditionalAngPreLerp[3] = self.AdditionalAngPreLerp[3] + math.ease.InOutBack(self.ZoomAnimLerp) * 2
-		if self.k > 0.7 and self.k < 0.75 then
-			local punchAng = Angle(math.Rand(-0.5, 0.5), math.Rand(-0.5, 0.5), math.Rand(-1, 1)) * (hg_coolcamera:GetBool() and 1 or 0.2)
-			ViewPunch(punchAng)
-			ViewPunch2(-punchAng)
-		end
-		if not self.zoomingBigSnd and self.k > 0.6 and not self:IsPistolHoldType() then
-			self:EmitSound("weapons/universal/uni_ads_in_0" .. math.random(6) .. ".wav",40)
-			self.zoomingBigSnd = true
-		end
-	elseif self.zoomingBigSnd and self:IsClient() and self.k < 0.75 then
-		self:EmitSound("weapons/universal/uni_ads_out_01.wav",40)
-		self.zoomingBigSnd = false
-	end
-
 	local posture = ((animpos < 0.2 and self:IsSprinting()) or animpos > (self:IsPistolHoldType() and 0.5 or 0.2)) and (self:IsPistolHoldType() and 3 or 4) or ply.posture
 
-	local func = hg.postureFunctions2[(self:IsSprinting() or huya) and (self:GetButtstockAttack() - CurTime() < -1) and ((ply.posture == 3 and 3) or (ply.posture == 3 and 3) or (self:IsPistolHoldType() and 3 or 3)) or ply.posture] or funcNil
-	func = ply:GetNWFloat("InLegKick", 0) > CurTime() and hg.postureFunctions2["legkicking"] or func
+	local func = hg.postureFunctions2[ply:GetNWFloat("InLegKick", 0) > CurTime() and "legkicking" or self.reload and 0 or (self:IsSprinting() or huya) and (self:GetButtstockAttack() - CurTime() < -1) and ((ply.posture == 3 and 3) or (ply.posture == 3 and 3) or (self:IsPistolHoldType() and 3 or 3)) or ply.posture] or funcNil
+
 	if not self.inspect then
 		func(self, ply, huya)
 	end
@@ -1898,16 +1875,16 @@ function SWEP:GetAdditionalValues()
 	--// Sprint anim
 	if CLIENT and self:IsLocal() and owner:IsOnGround() and not self.reload then
 		local runMul = vellen / owner:GetRunSpeed()
-		--if runMul >= 0.32 then
+		if runMul >= 0.32 then
 			if not self:IsPistolHoldType() and not self.CanEpicRun then
-				self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - y * 1 * runMul
-				self.AdditionalAngPreLerp[1] = self.AdditionalAngPreLerp[1] + y * 2 * runMul
-				self.AdditionalAngPreLerp[3] = self.AdditionalAngPreLerp[3] + y * 6 * runMul
+				self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - y * 3 * runMul
+				self.AdditionalAngPreLerp[1] = self.AdditionalAngPreLerp[1] - y * 3 * -2 * runMul
+				self.AdditionalAngPreLerp[3] = self.AdditionalAngPreLerp[3] - y * 3 * -6 * runMul
 			--[[else
 				self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] - y * 2 * runMul * -1
 				self.AdditionalAngPreLerp[2] = self.AdditionalAngPreLerp[2] - y * 6 * runMul]]
 			end
-		--end
+		end
 	end
 
 	if CLIENT and self:IsLocal2() then
@@ -1953,21 +1930,11 @@ function SWEP:GetAdditionalValues()
 	
 	if not suiciding and !self.norecoil then
 		local mulhuy = (self:IsPistolHoldType() or self.PistolKinda) and 2 or (((ply.posture == 1 and not self:IsZoom()) or ply.posture == 7 or ply.posture == 8) and 2 or 0.75)
-		local animpos = self:GetAnimShoot2(0.09 * mulhuy / host_timescale(), true)
-		local shit = 0.2 * mulhuy / host_timescale()
-		local animpos3 = self:GetAnimShoot2(shit, true) / shit
-		
-		animpos = animpos * 0.15 * mulhuy * (self:IsPistolHoldType() and 1 or 1)
+		local animpos = self:GetAnimShoot2(0.09 * mulhuy / host_timescale(), true) * 0.5
+		animpos = animpos * 0.3 * mulhuy * (self:IsPistolHoldType() and 1 or 1)
 		animpos = animpos * math.min((self.Primary.Force2 or self.Primary.Force) / 40,3) * ((self.NumBullet or 1) * 3 or 1) * (self.animposmul or 1) // * 4
 
-		self.AdditionalPos2 = self.AdditionalPos2 - (self.AdditionalAng + self.AdditionalAng2):Forward() * animpos * 9
-		local shit2 = (1 / self.weight) * (self.NumBullet or 3) / 3 * 0.5
-		self.AdditionalPos2[2] = self.AdditionalPos2[2] + math.sin(animpos3) * 1 * shit2
-		self.AdditionalPos2[1] = self.AdditionalPos2[1] + math.sin(animpos3) * -1 * shit2
-		self.AdditionalAng2[2] = self.AdditionalAng2[2] + math.sin(animpos3) * -2 * shit2
-		
-		self.AdditionalPos2:Add(VectorRand(-0.07, 0.07) * animpos3 * shit2)
-
+		self.AdditionalPos2 = self.AdditionalPos2 - (self.AdditionalAng + self.AdditionalAng2):Forward() * animpos * 7
 		//self.AdditionalPos2[3] = self.AdditionalPos2[3] + animpos * ply.offsetView[2] * 0.2
 		
 		if self.podkid or self:IsPistolHoldType() then

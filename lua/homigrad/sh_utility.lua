@@ -716,8 +716,7 @@ local IsValid = IsValid
 	function IsLookingAt(ply, targetVec, floatDiff)
 		if not IsValid(ply) or not ply:IsPlayer() then return false end
 		local diff = targetVec - ply:GetShootPos()
-		local val = ply:GetAimVector():Dot(diff) / diff:Length()
-		return val >= (floatDiff or 0.8), val
+		return ply:GetAimVector():Dot(diff) / diff:Length() >= (floatDiff or 0.8)
 	end
 --//
 --\\ Custom Hull check
@@ -1822,8 +1821,4 @@ if CLIENT then
 		return view
 	end)
 end
---//
-
---\\
-	hg_suppression_viewpunch = CreateConVar("hg_suppression_viewpunch", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Enable viewpunching when you on suppressed", 0, 1)
 --//
