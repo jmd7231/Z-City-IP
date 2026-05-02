@@ -379,13 +379,25 @@ function GM:PlayerDeath(ply)
 end
 
 hg.addbot = hg.addbot or false
+hg.addbot_pending = hg.addbot_pending or false
+
+local function GetRoundStarterBots()
+	return player.GetBots() or {}
+end
 
 function GM:UpdateRoundStarterBot()
 	local humanCount = #player.GetHumans()
+	local bots = GetRoundStarterBots()
+	local botCount = #bots
 
 	if humanCount <= 1 then
-		if #player.GetListByName("bot") == 0 then
+		if botCount == 0 and not hg.addbot_pending then
+			hg.addbot_pending = true
 			RunConsoleCommand("bot")
+
+			timer.Simple(0.2, function()
+				hg.addbot_pending = false
+			end)
 		end
 
 		hg.addbot = true
@@ -398,11 +410,12 @@ function GM:UpdateRoundStarterBot()
 	end
 
 	if humanCount > 1 and hg.addbot then
-		for i, bot in pairs(player.GetListByName("bot")) do
+		for i, bot in ipairs(bots) do
 			RunConsoleCommand("kick", bot:Name())
 		end
 
 		hg.addbot = false
+		hg.addbot_pending = false
 	end
 end
 
