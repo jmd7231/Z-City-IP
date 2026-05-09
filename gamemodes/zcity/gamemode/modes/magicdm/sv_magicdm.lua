@@ -50,8 +50,8 @@ hook.Add("Think", "magicdm_zone_shrink", function()
 	local radiusSqr = radius * radius
 
 	for _, ent in ents.Iterator() do
-		if pos:DistToSqr(ent:GetPos()) > radiusSqr and ent:IsPlayer() then
-			hg.LightStunPlayer(ent)
+		if pos:DistToSqr(ent:GetPos()) > radiusSqr and ent:IsPlayer() and ent:Alive() then
+			ent:Kill()
 		end
 	end
 end)
