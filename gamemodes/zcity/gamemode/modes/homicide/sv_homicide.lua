@@ -689,18 +689,12 @@ function MODE:Intermission()
 		 traitors_needed = 1
 	end
 	
-	local secondTraitorMinPlayers = 13
-
 	if(MODE.ShouldStartRoleRound())then
 		traitors_needed = math.ceil(player_count / 9)
-
-		if(player_count >= secondTraitorMinPlayers and math.random(1, 8) == 1)then
+		
+		if(player_count > 8 and math.random(1, 8) == 1)then
 			traitors_needed = traitors_needed + 1
 		end
-	end
-
-	if player_count < secondTraitorMinPlayers then
-		traitors_needed = 1
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed
