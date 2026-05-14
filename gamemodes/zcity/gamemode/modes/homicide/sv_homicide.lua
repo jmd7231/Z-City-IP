@@ -285,7 +285,23 @@ MODE.Types.standard = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
-		ply:Give("weapon_px4beretta")
+		local gunmanweaponspistol = {
+			"weapon_px4beretta",
+			"weapon_p250",
+			"weapon_m1911",
+			"weapon_hkp7",
+			"weapon_tokarev",
+			"weapon_m70zastavapist",
+			"weapon_ppk",
+			"weapon_vp9hk",
+			"weapon_p99",
+			"weapon_makarov",
+			"weapon_p38,",
+			"weapon_glock26",
+			"weapon_conan357",
+			"weapon_fivsevn",
+		}
+		ply:Give(gunmanweaponspistol[math.random(#gunmanweaponspistol)])
 		ply.organism.recoilmul = 1
 	end,
 	PoliceTime = 220,
@@ -571,7 +587,13 @@ MODE.Types.soe = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
-		local gun = ply:Give( ( math.random(1,2) > 1 and "weapon_remington870" ) or "weapon_kar98" )
+		local gunmanweapons = {
+			"weapon_remington870",
+			"weapon_kar98",
+			"weapon_m24remington",
+		}
+		local gun = ply:Give(gunmanweapons[math.random(#gunmanweapons)])
+		// local gun = ply:Give( ( math.random(1,2) > 1 and "weapon_remington870" ) or "weapon_kar98" )
 		ply.organism.recoilmul = 1.0
 		if gun:GetClass() == "weapon_kar98" then
 			hg.AddAttachmentForce(ply,gun,"optic12")
@@ -591,7 +613,7 @@ MODE.Types.soe = {
 		inv["Weapons"]["hg_flashlight"] = true
 		inv["Weapons"]["hg_sling"] = true
 		ply:SetNetVar("Inventory", inv)
-
+	
 		ply:SetPlayerClass("nationalguard")
 		local gun = ply:Give("weapon_fn45")
 		ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
@@ -645,8 +667,6 @@ function MODE:SubModes()
 	return modes
 end
 
-local homicide_traitoramount = ConVarExists("homicide_traitoramount") and GetConVar("homicide_traitoramount") or CreateConVar("homicide_traitoramount", 1, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Homicide Only: Determine how many traitors should innocents face in homicide.", 1, 20)
-
 function MODE:Intermission()
 	game.CleanUpMap()
 
@@ -679,19 +699,22 @@ function MODE:Intermission()
 	MODE.TraitorFrequency = nil
 	MODE.TraitorWord = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 	MODE.TraitorWordSecond = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
-	local traitors_needed = 1
-	local secondTraitorMinPlayers = 13
 
+	// local homicide_traitoramount = ConVarExists("homicide_traitoramount") and GetConVar("homicide_traitoramount") or CreateConVar("homicide_traitoramount",1,FCVAR_SERVER_CAN_EXECUTE,"Homicide Only: Determine how many traitors should innocents face in homicide.",1,20)
+	// local traitors_needed = homicide_traitoramount:GetInt()
+
+	if player_count >= 13 then
+		 traitors_needed = 2
+	else
+		 traitors_needed = 1
+	end
+	
 	if(MODE.ShouldStartRoleRound())then
 		traitors_needed = math.ceil(player_count / 9)
-
-		if(player_count >= secondTraitorMinPlayers and math.random(1, 8) == 1)then
+		
+		if(player_count > 8 and math.random(1, 8) == 1)then
 			traitors_needed = traitors_needed + 1
 		end
-	end
-
-	if player_count < secondTraitorMinPlayers then
-		traitors_needed = 1
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed
