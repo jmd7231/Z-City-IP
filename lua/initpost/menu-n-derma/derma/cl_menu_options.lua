@@ -311,6 +311,38 @@ function hg.CreateButton(buttonData, convarName, ParentPanel, yPos)
     return pppanel
 end
 
+
+
+function hg.CreateActionButton(strTitle, strSubtitle, ParentPanel, yPos, callback)
+    local pppanel = vgui.Create('DPanel', ParentPanel)
+    pppanel:SetSize(ParentPanel:GetWide()/1.05, ParentPanel:GetTall()/15)
+    pppanel:SetPos(ParentPanel:GetWide()/2-pppanel:GetWide()/2, yPos)
+
+    surface.SetFont('ZCity_setiings_fine')
+    local _, height2 = surface.GetTextSize(strTitle)
+
+    pppanel.Paint = function(self, w, h)
+        surface.SetDrawColor(43, 43, 43,145)
+        surface.DrawRect(0, 0, w, h)
+        surface.SetDrawColor(47, 47, 47,145)
+        surface.DrawRect(0, h-3, w, 3)
+
+        draw.SimpleText(strTitle, 'ZCity_setiings_fine', 30, h / 2 -height2/2.5, clr_1, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        draw.SimpleText(strSubtitle or '', 'ZCity_setiings_tiny', 30, h / 2+height2/2, clr_2, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    local button = vgui.Create('DButton', pppanel)
+    button:Dock(FILL)
+    button:SetText('')
+    button.DoClick = function()
+        if isfunction(callback) then
+            callback()
+        end
+    end
+
+    return pppanel
+end
+
 function hg.DrawSettings(ParentPanel)
     ParentPanel:SetAlpha(0)
     ParentPanel.Paint = function(self,w,h)
@@ -347,6 +379,14 @@ function hg.DrawSettings(ParentPanel)
     -- 🥴 <- лучший смайлик
 
     local yOffset = pppanel3:GetTall()/100
+
+    local pointshopCategory = hg.CreateCategory("Quick Actions", pppanel3, yOffset)
+    yOffset = yOffset + pointshopCategory:GetTall() + 12
+
+    local pointshopButton = hg.CreateActionButton("PointShop", "Open the IGcity pointshop", pppanel3, yOffset, function()
+        RunConsoleCommand("hg_pointshop")
+    end)
+    yOffset = yOffset + pointshopButton:GetTall() + 12
 
     for categoryName, categoryTable in pairs(hg.settings.tbl) do
         local category = hg.CreateCategory(categoryName, pppanel3, yOffset)
