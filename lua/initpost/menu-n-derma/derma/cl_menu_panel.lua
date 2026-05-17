@@ -161,7 +161,7 @@ function PANEL:Init()
     local lDock = self.lDock
     lDock:Dock(LEFT)
     lDock:SetSize(ScrW() / 4, ScrH())
-    lDock:DockMargin(ScreenScale(0), ScreenScaleH(90), ScreenScale(10), ScreenScaleH(90))
+    lDock:DockMargin(ScreenScale(0), ScreenScaleH(120), ScreenScale(10), ScreenScaleH(90))
     lDock.Paint = function(this, w, h)
         if hg.PluvTown.Active then
             surface.SetDrawColor(color_white)
@@ -251,7 +251,7 @@ function PANEL:AddSelect( pParent, strTitle, tbl )
     btn:SetFont( "ZCity_Small" )
     btn:SetTall( ScreenScale( 15 ) )
     btn:Dock(BOTTOM)
-    btn:DockMargin(ScreenScale(15),ScreenScale(1.5),0,0)
+    btn:DockMargin(ScreenScale(15),ScreenScale(5),0,0)
     btn.Func = tbl.Func
     btn.HoveredFunc = tbl.HoveredFunc
     local luaMenu = self 
