@@ -350,7 +350,15 @@ hook.Add("Think", "PointShop_PassiveIGPoints", function()
         if CurTime() < ply.PS_NextPassiveIGPoints then continue end
 
         ply.PS_NextPassiveIGPoints = CurTime() + PASSIVE_IGPOINTS_INTERVAL
-        ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder + PASSIVE_IGPOINTS_PER_TICK
+
+        local pointMultiplier = 1
+        if IsVIPPlayer(ply) then
+            pointMultiplier = 5
+        elseif (tonumber(ply.Karma) or 0) >= 100 then
+            pointMultiplier = 2
+        end
+
+        ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder + (PASSIVE_IGPOINTS_PER_TICK * pointMultiplier)
 
         local wholePoints = math.floor(ply.PS_PassiveIGPointsRemainder)
         if wholePoints < 1 then continue end
