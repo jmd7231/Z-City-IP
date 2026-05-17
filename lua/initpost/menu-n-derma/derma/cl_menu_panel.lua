@@ -6,6 +6,7 @@ local Selects = {
     {Title = "Disconnect", Func = function(luaMenu) RunConsoleCommand("disconnect") end},
     {Title = "Main Menu", Func = function(luaMenu) gui.ActivateGameUI() luaMenu:Close() end},
     {Title = "Discord", Func = function(luaMenu) luaMenu:Close() gui.OpenURL("https://discord.gg/WRujPJn")  end},
+    {Title = "Donate", Func = function(luaMenu) luaMenu:Close() gui.OpenURL("https://imperfectgamersdonate.com/") end},
     {Title = "Traitor Role",
     GamemodeOnly = true,
     CreatedFunc = function(self, parent, luaMenu)
