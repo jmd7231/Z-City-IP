@@ -333,6 +333,35 @@ concommand.Add("hg_ps_give_vip_points", function(executor, _, args)
         target:PrintMessage(HUD_PRINTCONSOLE, "[PointShop] You received " .. tostring(amount) .. " IGcity points.")
     end
 end)
+
+local PASSIVE_IGPOINTS_PER_HOUR = 10
+local PASSIVE_IGPOINTS_INTERVAL = 60
+local PASSIVE_IGPOINTS_PER_TICK = PASSIVE_IGPOINTS_PER_HOUR * (PASSIVE_IGPOINTS_INTERVAL / 3600)
+
+hook.Add("Think", "PointShop_PassiveIGPoints", function()
+    if not PLUGIN.Active then return end
+
+    for _, ply in ipairs(player.GetAll()) do
+        if not IsValid(ply) or not ply:IsPlayer() then continue end
+
+        ply.PS_NextPassiveIGPoints = ply.PS_NextPassiveIGPoints or (CurTime() + PASSIVE_IGPOINTS_INTERVAL)
+        ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder or 0
+
+        if CurTime() < ply.PS_NextPassiveIGPoints then continue end
+
+        ply.PS_NextPassiveIGPoints = CurTime() + PASSIVE_IGPOINTS_INTERVAL
+        ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder + PASSIVE_IGPOINTS_PER_TICK
+
+        local wholePoints = math.floor(ply.PS_PassiveIGPointsRemainder)
+        if wholePoints < 1 then continue end
+
+        local ok = ply:PS_AddPoints(wholePoints)
+        if ok then
+            ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder - wholePoints
+        end
+    end
+end)
+
 hook.Add("HG_PlayerSay","OpenPointShop",function(ply, txtTbl, txt)
     if txt == "!pointshop" then
         ply:ConCommand("hg_pointshop")
