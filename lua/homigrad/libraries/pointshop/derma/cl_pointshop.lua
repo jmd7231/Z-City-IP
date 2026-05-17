@@ -372,6 +372,21 @@ end
 
 vgui.Register( "HG_PointShop", PANEL, "ZFrame")
 
+
+hook.Add("radialOptions", "pointshop_esc_menu", function()
+    local ply = LocalPlayer()
+    local organism = ply.organism or {}
+
+    if not IsValid(ply) or not ply:Alive() or organism.otrub then return end
+
+    hg.radialOptions[#hg.radialOptions + 1] = {
+        function()
+            RunConsoleCommand("hg_pointshop")
+        end,
+        "PointShop"
+    }
+end)
+
 concommand.Add("hg_pointshop",function()
     PLUGIN:SendNET( "SendPointShopVars", nil, function( data )
         if PLUGIN.MenuPanel then
