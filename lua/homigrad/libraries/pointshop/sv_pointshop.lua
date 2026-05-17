@@ -334,6 +334,18 @@ concommand.Add("hg_ps_give_vip_points", function(executor, _, args)
     end
 end)
 
+local function GetPassivePointMultiplier(ply)
+    if IsVIPPlayer(ply) then
+        return 5
+    end
+
+    if (tonumber(ply.Karma) or 0) >= 100 then
+        return 2
+    end
+
+    return 1
+end
+
 local PASSIVE_IGPOINTS_PER_HOUR = 20
 local PASSIVE_IGPOINTS_INTERVAL = 300
 local PASSIVE_IGPOINTS_PER_TICK = PASSIVE_IGPOINTS_PER_HOUR * (PASSIVE_IGPOINTS_INTERVAL / 3600)
@@ -351,12 +363,7 @@ hook.Add("Think", "PointShop_PassiveIGPoints", function()
 
         ply.PS_NextPassiveIGPoints = CurTime() + PASSIVE_IGPOINTS_INTERVAL
 
-        local pointMultiplier = 1
-        if IsVIPPlayer(ply) then
-            pointMultiplier = 5
-        elseif (tonumber(ply.Karma) or 0) >= 100 then
-            pointMultiplier = 2
-        end
+        local pointMultiplier = GetPassivePointMultiplier(ply)
 
         ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder + (PASSIVE_IGPOINTS_PER_TICK * pointMultiplier)
 
@@ -367,6 +374,19 @@ hook.Add("Think", "PointShop_PassiveIGPoints", function()
         if ok then
             ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder - wholePoints
             ply:ChatPrint("You earned " .. tostring(wholePoints) .. " IGcity points")
+        end
+    end
+end)
+
+hook.Add("ZB_StartRound", "PointShop_NotifyPassiveMultiplier", function()
+    for _, ply in ipairs(player.GetAll()) do
+        if not IsValid(ply) or not ply:IsPlayer() then continue end
+
+        local pointMultiplier = GetPassivePointMultiplier(ply)
+        if pointMultiplier == 5 then
+            ply:ChatPrint("[PointShop] VIP bonus active: you are earning 5x IGcity points over time.")
+        elseif pointMultiplier == 2 then
+            ply:ChatPrint("[PointShop] Karma bonus active (100+): you are earning 2x IGcity points over time.")
         end
     end
 end)
