@@ -334,8 +334,8 @@ concommand.Add("hg_ps_give_vip_points", function(executor, _, args)
     end
 end)
 
-local PASSIVE_IGPOINTS_PER_HOUR = 10
-local PASSIVE_IGPOINTS_INTERVAL = 60
+local PASSIVE_IGPOINTS_PER_HOUR = 20
+local PASSIVE_IGPOINTS_INTERVAL = 300
 local PASSIVE_IGPOINTS_PER_TICK = PASSIVE_IGPOINTS_PER_HOUR * (PASSIVE_IGPOINTS_INTERVAL / 3600)
 
 hook.Add("Think", "PointShop_PassiveIGPoints", function()
