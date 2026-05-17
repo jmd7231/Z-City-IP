@@ -71,7 +71,11 @@ local Selects = {
     {Title = "Achievements", Func = function(luaMenu,pp) 
         hg.DrawAchievmentsMenu(pp)
     end},
-    {Title = "Settings", Func = function(luaMenu,pp) 
+    {Title = "PointShop", Func = function(luaMenu)
+        luaMenu:Close()
+        RunConsoleCommand("hg_pointshop")
+    end},
+{Title = "Settings", Func = function(luaMenu,pp) 
         hg.DrawSettings(pp) 
     end},
     {Title = "Appearance", Func = function(luaMenu,pp) hg.CreateApperanceMenu(pp) end},
