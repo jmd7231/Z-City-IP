@@ -366,6 +366,7 @@ hook.Add("Think", "PointShop_PassiveIGPoints", function()
         local ok = ply:PS_AddPoints(wholePoints)
         if ok then
             ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder - wholePoints
+            ply:ChatPrint("You earned " .. tostring(wholePoints) .. " IGcity points")
         end
     end
 end)
