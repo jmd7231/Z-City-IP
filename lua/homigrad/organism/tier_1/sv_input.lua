@@ -1369,18 +1369,25 @@ local bleedSurfaces = { -- https://developer.valvesoftware.com/wiki/Material_sur
 }
 
 local function velocityDamage(ent, data)
+	local hitEnt = data.HitEntity
+	if not IsValid(hitEnt) then return end
+
 	local speed = (data.OurOldVelocity - data.TheirOldVelocity):Length()
 	if speed < 350 then return end
-	if data.HitEntity.Throwable then return end
-	
-	if !data.HitEntity:IsWorld() and data.HitEntity.lasttouched and data.HitEntity.lasttouched[ent] then
-		if data.HitEntity.lasttouched[ent] + 0.5 > CurTime() then
+	if hitEnt.Throwable then return end
+
+	local class = hitEnt:GetClass()
+	local isDoor = class == "prop_door_rotating" or class == "func_door_rotating" or class == "func_door"
+	local touchDelay = isDoor and 1.25 or 0.5
+
+	if !hitEnt:IsWorld() and hitEnt.lasttouched and hitEnt.lasttouched[ent] then
+		if hitEnt.lasttouched[ent] + touchDelay > CurTime() then
 			return
 		end
 	end
 
-	data.HitEntity.lasttouched = data.HitEntity.lasttouched or {}
-	data.HitEntity.lasttouched[ent] = CurTime()
+	hitEnt.lasttouched = hitEnt.lasttouched or {}
+	hitEnt.lasttouched[ent] = CurTime()
 
 	--print(data.HitObject:GetEntity():IsWorld())
 	local dmg = speed / 5350 * data.DeltaTime * ((IsValid(data.HitObject) && !data.HitObject:GetEntity():IsWorld()) && math.min(data.HitObject:GetMass() / 20, 1) || 1)
@@ -1618,6 +1625,8 @@ hook.Add("Ragdoll Collide", "organism", function(ragdoll, data)
 	if data.DeltaTime < 0.25 then return end
 	if not ragdoll:IsRagdoll() then return end
 	if data.HitEntity:IsPlayerHolding() then return end
+
+
 	velocityDamage(ragdoll, data)
 	--if data.Speed < 250 then return end
 	--if data.HitEntity:IsPlayer() then hg.Fake(data.HitEntity) end
