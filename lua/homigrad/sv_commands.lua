@@ -66,7 +66,18 @@ function COMMAND_GETARGS(args)
 end
 
 function COMMAND_Input(ply,args)
-	local cmd = COMMANDS[args[1]]
+	local commandName = args[1]
+	local cmd = COMMANDS[commandName]
+
+	if not cmd and isstring(commandName) then
+		local prefixedCommandName = string.sub(commandName, 1, 1) == "!" and string.sub(commandName, 2, #commandName) or "!" .. commandName
+		cmd = COMMANDS[prefixedCommandName]
+
+		if cmd then
+			args[1] = prefixedCommandName
+		end
+	end
+
 	if not cmd then return false end
 	if not COMMAND_ACCES(ply,cmd) then return true,false end
 
@@ -76,6 +87,12 @@ function COMMAND_Input(ply,args)
 end
 -- Мдаааа А ПЛЕЙРСЕЙ ДЛЯ КОГО НУЖЕН????
 hook.Add("HG_PlayerSay","commands-chat",function(ply, txtTbl, text)
+	if not isstring(text) or text == "" then return end
+
+	-- Chat command handling is opt-in via the "!" prefix only.
+	-- This keeps slash-prefixed text and other chat messages untouched.
+	if string.sub(text, 1, 1) ~= "!" then return end
+
 	COMMAND_Input(ply, COMMAND_GETARGS(string.Split(string.sub(text, 2, #text), " ")))
 end)
 
