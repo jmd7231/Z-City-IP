@@ -134,6 +134,48 @@ end
 
 local vecCone = Vector(0, 0, 0)
 
+local function SafeExplosionDirection(fromPos, origin)
+	local dir = fromPos - origin
+	local len = dir:Length()
+
+	if len < 1 then
+		dir = VectorRand()
+		dir:Normalize()
+		return dir, 1
+	end
+
+	dir:Div(len)
+	return dir, len
+end
+
+local function ApplySafeRagdollBlastForce(ragdoll, origin, force)
+	if not IsValid(ragdoll) or not ragdoll:IsRagdoll() then return end
+
+	timer.Simple(0, function()
+		if not IsValid(ragdoll) then return end
+
+		local physCount = ragdoll:GetPhysicsObjectCount()
+		if physCount <= 0 then return end
+
+		local perBoneForce = force / math.max(physCount, 1)
+		for i = 0, physCount - 1 do
+			local phys = ragdoll:GetPhysicsObjectNum(i)
+			if IsValid(phys) then
+				local dir = phys:GetPos() - origin
+				if dir:LengthSqr() < 1 then
+					dir = perBoneForce
+				end
+
+				dir:Normalize()
+				phys:EnableMotion(true)
+				phys:Wake()
+				phys:ApplyForceCenter(dir * math.min(perBoneForce:Length(), 12000))
+			end
+		end
+	end)
+end
+
+
 function ENT:PoopBomb()
 	return math.random(1, 100) == 1
 end
@@ -280,9 +322,7 @@ function ENT:Explode()
 		end
 		
 		local phys = enta:GetPhysicsObject()
-		local force = (enta:GetPos() - selfPos)
-		local len = force:Length()
-		force:Div(len)
+		local force, len = SafeExplosionDirection(enta:GetPos(), selfPos)
 		local frac = math.Clamp((disorientation_dis - len) / disorientation_dis, 0.1, 1)  
 		local physics_frac = math.Clamp((dis - len) / dis, 0.5, 1)  
 		local forceadd = force * physics_frac * 50000  
@@ -304,6 +344,11 @@ function ENT:Explode()
 			hg.AddForceRag(enta, 1, forceadd * 0.5, 0.5)
 
 			hg.LightStunPlayer(enta)
+		end
+
+		if enta:IsRagdoll() and IsValid(hg.RagdollOwner(enta)) then
+			ApplySafeRagdollBlastForce(enta, selfPos, forceadd)
+			continue
 		end
 
 		if not IsValid(phys) then continue end
