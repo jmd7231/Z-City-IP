@@ -98,6 +98,14 @@ function IsReasonable( pos )
 	return true
 end
 
+local function ShouldKeepMotionAfterCrazyPhysics(ent)
+	if not IsValid(ent) then return false end
+	if ent:IsWeapon() or ent:IsPlayerHolding() or ent.isheld then return true end
+
+	local class = ent:GetClass()
+	return class == "prop_physics" or string.StartWith(class, "ent_hg_grenade") or string.find(class, "grenade", 1, true) ~= nil
+end
+
 hook.Add("OnCrazyPhysics","crazy_physics",function(ent, physobj)--function(a,msg,c,d, r,g,b)
 	local a = ent:GetPos()
 	local angles = ent:GetAngles()
@@ -116,20 +124,30 @@ hook.Add("OnCrazyPhysics","crazy_physics",function(ent, physobj)--function(a,msg
 
 	hg.SafeCollisionRulesChanged(ent)
 
+	local keepMotion = ShouldKeepMotionAfterCrazyPhysics(ent)
+
 	if physobj:IsValid() then
-		physobj:EnableMotion(false)
-		physobj:Sleep()
-		physobj:SetPos(vector_origin)
-		physobj:SetAngles(angle_zero)
-		physobj:SetVelocity(vector_origin)
-		physobj:SetAngleVelocity(vector_origin)
+		if keepMotion then
+			physobj:EnableMotion(true)
+			physobj:Wake()
+			physobj:SetAngleVelocity(vector_origin)
+		else
+			physobj:EnableMotion(false)
+			physobj:Sleep()
+			physobj:SetPos(vector_origin)
+			physobj:SetAngles(angle_zero)
+			physobj:SetVelocity(vector_origin)
+			physobj:SetAngleVelocity(vector_origin)
+		end
 	end
 
-	ent:SetLocalAngularVelocity(angle_zero)
-	ent:SetVelocity(vector_origin)
-	ent:SetLocalVelocity(vector_origin)
+	if not keepMotion then
+		ent:SetLocalAngularVelocity(angle_zero)
+		ent:SetVelocity(vector_origin)
+		ent:SetLocalVelocity(vector_origin)
 
-	SetAbsVelocity(ent, vector_origin)
+		SetAbsVelocity(ent, vector_origin)
+	end
 	if SERVER then
 		local t = constraint.GetAllConstrainedEntities(ent)
 		for k,v in next, t or {} do

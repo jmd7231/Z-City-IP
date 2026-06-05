@@ -1,5 +1,35 @@
 local hg_allow_homigrad = ConVarExists("hg_allow_homigrad") and GetConVar("hg_allow_homigrad") or CreateConVar("hg_allow_homigrad",0,FCVAR_SERVER_CAN_EXECUTE,"Allow homigrad-like entity drag for administrators in spectator mode",0,1)
 
+local function WakeEntityPhysics(ent, bone)
+	if not IsValid(ent) then return end
+
+	if bone then
+		local phys = ent:GetPhysicsObjectNum(bone)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+
+		return
+	end
+
+	local count = ent:GetPhysicsObjectCount()
+	for i = 0, count - 1 do
+		local phys = ent:GetPhysicsObjectNum(i)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+	end
+end
+
+local function CanFreezeCarriedEntity(ent)
+	if not IsValid(ent) then return false end
+
+	local class = ent:GetClass()
+	return not string.StartWith(class, "ent_hg_grenade") and string.find(class, "grenade", 1, true) == nil
+end
+
 hook.Add("Player Think","ShadowControlAdmin",function(ply, time)
 	if !hg_allow_homigrad:GetBool() then return end
 	if !ply:IsSuperAdmin() or ply:Alive() then return end
@@ -41,6 +71,7 @@ hook.Add("Player Think","ShadowControlAdmin",function(ply, time)
 		end
 	else
 		if IsValid(ply.ShadowCarryEnt) then
+			WakeEntityPhysics(ply.ShadowCarryEnt, ply.ShadowCarryEntPhysbone)
 			ply.ShadowCarryEnt.isheld = false
 			ply.ShadowCarryEnt = nil
 			ply.ShadowCarryEntLen = nil
@@ -48,7 +79,7 @@ hook.Add("Player Think","ShadowControlAdmin",function(ply, time)
 		end
 	end
 	if ply:KeyDown(IN_ATTACK2) and ply.allowGrab then
-		if IsValid(ply.ShadowCarryEnt) then
+		if IsValid(ply.ShadowCarryEnt) and CanFreezeCarriedEntity(ply.ShadowCarryEnt) then
 			ply.ShadowCarryEnt:GetPhysicsObjectNum(ply.ShadowCarryEntPhysbone):EnableMotion(false)
 			ply.ShadowCarryEnt.isheld = true
 		end

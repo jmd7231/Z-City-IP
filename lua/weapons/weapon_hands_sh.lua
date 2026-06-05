@@ -27,6 +27,29 @@ local function QueueCollisionRulesChanged(ent)
 end
 
 
+local function WakeDroppedPhysics(ent, bone)
+	if not IsValid(ent) then return end
+
+	if bone then
+		local phys = ent:GetPhysicsObjectNum(bone)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+
+		return
+	end
+
+	local count = ent:GetPhysicsObjectCount()
+	for i = 0, count - 1 do
+		local phys = ent:GetPhysicsObjectNum(i)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+	end
+end
+
 SWEP.Category = "ZCity Other"
 SWEP.Instructions = "LMB - raise fists\nRELOAD - lower fists\n\nIn the raised state:\nLMB - strike\nRMB - block\n\nIn the lowered state: RMB - raise the object, RMB+R - check the pulse (when used on someone's head or hand)\n\nWhen holding the object: RELOAD - fix the object in air, E - spin the object in the air."
 SWEP.Spawnable = true
@@ -1179,10 +1202,14 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 			owner:SetNetVar("carrymass",self.CarryEnt:GetPhysicsObjectNum(self.CarryBone):GetMass())
 		end
 	else
-		if IsValid(self.CarryEnt) and self.CarryEnt:GetCustomCollisionCheck() then
-			QueueCollisionRulesChanged(self.CarryEnt)
-			QueueCollisionRulesChanged(owner)
-			//self.CarryEnt:SetCustomCollisionCheck(false)
+		if IsValid(self.CarryEnt) then
+			WakeDroppedPhysics(self.CarryEnt, self.CarryBone)
+
+			if self.CarryEnt:GetCustomCollisionCheck() then
+				QueueCollisionRulesChanged(self.CarryEnt)
+				QueueCollisionRulesChanged(owner)
+				//self.CarryEnt:SetCustomCollisionCheck(false)
+			end
 		end
 
 		if IsValid(owner:GetNetVar("carryent")) then
@@ -1697,6 +1724,8 @@ heldents = heldents or {}
 
 function hg.RemoveCarryEnt2(ent)
 	heldents[ent] = nil
+
+	WakeDroppedPhysics(ent)
 
 	ent.rememberedang = nil
 	ent.oldaddang = nil

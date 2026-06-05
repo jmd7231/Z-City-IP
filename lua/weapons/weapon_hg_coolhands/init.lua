@@ -43,6 +43,29 @@ local function QueueCollisionRulesChanged(ent)
 end
 
 
+local function WakeDroppedPhysics(ent, bone)
+	if not IsValid(ent) then return end
+
+	if bone then
+		local phys = ent:GetPhysicsObjectNum(bone)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+
+		return
+	end
+
+	local count = ent:GetPhysicsObjectCount()
+	for i = 0, count - 1 do
+		local phys = ent:GetPhysicsObjectNum(i)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+	end
+end
+
 local function WhomILookinAt(ply, cone, dist)
 	local CreatureTr, ObjTr, OtherTr
 	for i = 1, 150 * cone do
@@ -480,10 +503,14 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 			owner:SetNetVar("carrymass",self.CarryEnt:GetPhysicsObjectNum(self.CarryBone):GetMass())
 		end
 	else
-		if IsValid(self.CarryEnt) and self.CarryEnt:GetCustomCollisionCheck() then
-			QueueCollisionRulesChanged(self.CarryEnt)
-			QueueCollisionRulesChanged(owner)
-			//self.CarryEnt:SetCustomCollisionCheck(false)
+		if IsValid(self.CarryEnt) then
+			WakeDroppedPhysics(self.CarryEnt, self.CarryBone)
+
+			if self.CarryEnt:GetCustomCollisionCheck() then
+				QueueCollisionRulesChanged(self.CarryEnt)
+				QueueCollisionRulesChanged(owner)
+				//self.CarryEnt:SetCustomCollisionCheck(false)
+			end
 		end
 
 		if IsValid(owner:GetNetVar("carryent")) then
