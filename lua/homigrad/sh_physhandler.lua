@@ -2,20 +2,56 @@
 hg = hg or {}
 
 local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+local pendingCustomCollisionCheck = setmetatable({}, {__mode = "k"})
+local collisionRefreshQueued = false
 
-function hg.SafeCollisionRulesChanged(ent)
-	if not IsValid(ent) then return end
-	if pendingCollisionRefresh[ent] then return end
+local function FlushPendingCollisionRefresh()
+	collisionRefreshQueued = false
 
-	pendingCollisionRefresh[ent] = true
+	for ent, customCollisionCheck in pairs(pendingCustomCollisionCheck) do
+		pendingCustomCollisionCheck[ent] = nil
+		pendingCollisionRefresh[ent] = nil
 
-	timer.Simple(0, function()
+		if IsValid(ent) then
+			if ent:GetCustomCollisionCheck() != customCollisionCheck then
+				ent:SetCustomCollisionCheck(customCollisionCheck)
+			else
+				ent:CollisionRulesChanged()
+			end
+		end
+	end
+
+	for ent in pairs(pendingCollisionRefresh) do
 		pendingCollisionRefresh[ent] = nil
 
 		if IsValid(ent) then
 			ent:CollisionRulesChanged()
 		end
+	end
+end
+
+local function QueueCollisionFlush()
+	if collisionRefreshQueued then return end
+
+	collisionRefreshQueued = true
+	hook.Add("Think", "hg_safe_collision_rules_changed", function()
+		hook.Remove("Think", "hg_safe_collision_rules_changed")
+		FlushPendingCollisionRefresh()
 	end)
+end
+
+function hg.SafeCollisionRulesChanged(ent)
+	if not IsValid(ent) then return end
+
+	pendingCollisionRefresh[ent] = true
+	QueueCollisionFlush()
+end
+
+function hg.SafeSetCustomCollisionCheck(ent, enabled)
+	if not IsValid(ent) then return end
+
+	pendingCustomCollisionCheck[ent] = enabled and true or false
+	QueueCollisionFlush()
 end
 
 function hg.GetSafeDropPos(ply, distance)

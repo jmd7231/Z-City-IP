@@ -144,16 +144,37 @@ local function GetSafeDropPos(ply)
     return ply:GetShootPos() + ply:GetAimVector() * 35 + Vector(0, 0, -8)
 end
 
+local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+local collisionRefreshQueued = false
+local collisionRefreshHookName = "homigrad_inventory_safe_collision_rules_changed"
+
+local function FlushCollisionRefreshQueue()
+    collisionRefreshQueued = false
+
+    for ent in pairs(pendingCollisionRefresh) do
+        pendingCollisionRefresh[ent] = nil
+
+        if IsValid(ent) then
+            ent:CollisionRulesChanged()
+        end
+    end
+end
+
 local function SafeCollisionRulesChanged(ent)
+    if not IsValid(ent) then return end
+
     if hg and hg.SafeCollisionRulesChanged then
         hg.SafeCollisionRulesChanged(ent)
         return
     end
 
-    timer.Simple(0, function()
-        if IsValid(ent) then
-            ent:CollisionRulesChanged()
-        end
+    pendingCollisionRefresh[ent] = true
+    if collisionRefreshQueued then return end
+
+    collisionRefreshQueued = true
+    hook.Add("Think", collisionRefreshHookName, function()
+        hook.Remove("Think", collisionRefreshHookName)
+        FlushCollisionRefreshQueue()
     end)
 end
 

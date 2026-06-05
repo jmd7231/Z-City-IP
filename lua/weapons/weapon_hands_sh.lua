@@ -5,6 +5,44 @@ local function RagdollOwner(ent)
 end
 
 local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+local pendingCustomCollisionCheck = setmetatable({}, {__mode = "k"})
+local collisionRefreshQueued = false
+local collisionRefreshHookName = "hg_safe_collision_rules_changed_hands"
+
+local function FlushCollisionRefreshQueue()
+	collisionRefreshQueued = false
+
+	for ent, customCollisionCheck in pairs(pendingCustomCollisionCheck) do
+		pendingCustomCollisionCheck[ent] = nil
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			if ent:GetCustomCollisionCheck() != customCollisionCheck then
+				ent:SetCustomCollisionCheck(customCollisionCheck)
+			else
+				ent:CollisionRulesChanged()
+			end
+		end
+	end
+
+	for ent in pairs(pendingCollisionRefresh) do
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			ent:CollisionRulesChanged()
+		end
+	end
+end
+
+local function QueueCollisionRefreshFlush()
+	if collisionRefreshQueued then return end
+
+	collisionRefreshQueued = true
+	hook.Add("Think", collisionRefreshHookName, function()
+		hook.Remove("Think", collisionRefreshHookName)
+		FlushCollisionRefreshQueue()
+	end)
+end
 
 local function QueueCollisionRulesChanged(ent)
 	if not IsValid(ent) then return end
@@ -14,16 +52,20 @@ local function QueueCollisionRulesChanged(ent)
 		return
 	end
 
-	if pendingCollisionRefresh[ent] then return end
 	pendingCollisionRefresh[ent] = true
+	QueueCollisionRefreshFlush()
+end
 
-	timer.Simple(0, function()
-		pendingCollisionRefresh[ent] = nil
+local function QueueCustomCollisionCheck(ent, enabled)
+	if not IsValid(ent) then return end
 
-		if IsValid(ent) then
-			ent:CollisionRulesChanged()
-		end
-	end)
+	if hg and hg.SafeSetCustomCollisionCheck then
+		hg.SafeSetCustomCollisionCheck(ent, enabled)
+		return
+	end
+
+	pendingCustomCollisionCheck[ent] = enabled and true or false
+	QueueCollisionRefreshFlush()
 end
 
 
@@ -1186,8 +1228,7 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 		end
 
 		if not self.CarryEnt:GetCustomCollisionCheck() then
-			self.CarryEnt:SetCustomCollisionCheck(true)
-			QueueCollisionRulesChanged(self.CarryEnt)
+			QueueCustomCollisionCheck(self.CarryEnt, true)
 			QueueCollisionRulesChanged(owner)
 
 			self.CarryEnt:CallOnRemove("removenarsla",function()
@@ -1775,8 +1816,7 @@ function hg.SetCarryEnt2(ply, ent, bone, mass, carrypos, targetpos, targetang, d
 			ply:SetNetVar("carrypos2", carrypos)
 
 			if not ent:GetCustomCollisionCheck() then
-				ent:SetCustomCollisionCheck(true)
-				QueueCollisionRulesChanged(ent)
+				QueueCustomCollisionCheck(ent, true)
 			end
 
 			local dist = dist or phys:GetPos():Distance(ply:EyePos())
