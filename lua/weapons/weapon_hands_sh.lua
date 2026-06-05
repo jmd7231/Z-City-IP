@@ -4,9 +4,22 @@ local function RagdollOwner(ent)
 	return hg.RagdollOwner(ent)
 end
 
+local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+
 local function QueueCollisionRulesChanged(ent)
 	if not IsValid(ent) then return end
+
+	if hg and hg.SafeCollisionRulesChanged then
+		hg.SafeCollisionRulesChanged(ent)
+		return
+	end
+
+	if pendingCollisionRefresh[ent] then return end
+	pendingCollisionRefresh[ent] = true
+
 	timer.Simple(0, function()
+		pendingCollisionRefresh[ent] = nil
+
 		if IsValid(ent) then
 			ent:CollisionRulesChanged()
 		end

@@ -137,6 +137,26 @@ hook.Add("PlayerAmmoChanged", "homigrad-inventory", function(ply,ammoID,oldcount
 end)
 
 local vecZero = Vector(0, 0, 0)
+
+local function GetSafeDropPos(ply)
+    if hg and hg.GetSafeDropPos then return hg.GetSafeDropPos(ply) end
+
+    return ply:GetShootPos() + ply:GetAimVector() * 35 + Vector(0, 0, -8)
+end
+
+local function SafeCollisionRulesChanged(ent)
+    if hg and hg.SafeCollisionRulesChanged then
+        hg.SafeCollisionRulesChanged(ent)
+        return
+    end
+
+    timer.Simple(0, function()
+        if IsValid(ent) then
+            ent:CollisionRulesChanged()
+        end
+    end)
+end
+
 hook.Add("PlayerDropWeapon", "homigrad-inventory", function(ply)
     local wep = ply:GetActiveWeapon()
     if not IsValid(wep) or wep.NoDrop then return end
@@ -146,9 +166,26 @@ hook.Add("PlayerDropWeapon", "homigrad-inventory", function(ply)
     local bon = ent:LookupBone("ValveBiped.Bip01_R_Hand")
 
     if wep.RemoveFake then wep:RemoveFake() end
-    wep:SetCollisionGroup(COLLISION_GROUP_WORLD)
-    ply:DropWeapon(wep, ply:EyePos(), vecZero)
-    wep:SetPos(ply:EyePos())
+    local dropPos = GetSafeDropPos(ply)
+    local dropAng = Angle(0, eyeAngles.y, 0)
+
+    ply:DropWeapon(wep, dropPos, vecZero)
+    wep:SetPos(dropPos)
+    wep:SetAngles(dropAng)
+
+    timer.Simple(0, function()
+        if not IsValid(wep) then return end
+
+        local phys = wep:GetPhysicsObject()
+        if IsValid(phys) then
+            phys:Wake()
+            phys:SetVelocity(IsValid(ply) and ply:GetAimVector() * 80 or vecZero)
+        end
+
+        wep:SetCollisionGroup(COLLISION_GROUP_WORLD)
+        SafeCollisionRulesChanged(wep)
+    end)
+
     ply.inventory.Weapons[wep:GetClass()] = nil
     ply:SetNetVar("Inventory", ply.inventory)
     ply:SetActiveWeapon(NULL)
@@ -174,6 +211,7 @@ hook.Add("PlayerDropWeapon", "homigrad-inventory", function(ply)
         wep:SetAngles(localang)
         wep:SetVelocity(vector_origin)
         wep:SetCollisionGroup(COLLISION_GROUP_WEAPON)
+        SafeCollisionRulesChanged(wep)
 
         local physbone = ent:TranslateBoneToPhysBone(bon)
         local physbonetorso = ent:TranslateBoneToPhysBone(ent:LookupBone("ValveBiped.Bip01_Spine2"))

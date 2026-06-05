@@ -1,3 +1,47 @@
+
+hg = hg or {}
+
+local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+
+function hg.SafeCollisionRulesChanged(ent)
+	if not IsValid(ent) then return end
+	if pendingCollisionRefresh[ent] then return end
+
+	pendingCollisionRefresh[ent] = true
+
+	timer.Simple(0, function()
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			ent:CollisionRulesChanged()
+		end
+	end)
+end
+
+function hg.GetSafeDropPos(ply, distance)
+	if not IsValid(ply) then return vector_origin end
+
+	distance = distance or 35
+
+	local aim = ply:GetAimVector()
+	local start = ply.GetShootPos and ply:GetShootPos() or ply:EyePos()
+	local target = start + aim * distance + Vector(0, 0, -8)
+	local tr = util.TraceHull({
+		start = start,
+		endpos = target,
+		filter = ply,
+		mins = Vector(-8, -8, -4),
+		maxs = Vector(8, 8, 4),
+		mask = MASK_SOLID
+	})
+
+	if tr.Hit then
+		return tr.HitPos - aim * 4
+	end
+
+	return target
+end
+
 local function SetAbsVelocity(pEntity, vAbsVelocity)
 	if (pEntity:GetInternalVariable("m_vecAbsVelocity") ~= vAbsVelocity) then
 		// The abs velocity won't be dirty since we're setting it here
@@ -70,7 +114,7 @@ hook.Add("OnCrazyPhysics","crazy_physics",function(ent, physobj)--function(a,msg
 
 	local pos = ent:GetPos()
 
-	ent:CollisionRulesChanged()
+	hg.SafeCollisionRulesChanged(ent)
 
 	if physobj:IsValid() then
 		physobj:EnableMotion(false)

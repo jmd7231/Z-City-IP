@@ -1,6 +1,29 @@
 
 local MODE = MODE
 
+
+local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+
+local function SafeCollisionRulesChanged(ent)
+	if not IsValid(ent) then return end
+
+	if hg and hg.SafeCollisionRulesChanged then
+		hg.SafeCollisionRulesChanged(ent)
+		return
+	end
+
+	if pendingCollisionRefresh[ent] then return end
+	pendingCollisionRefresh[ent] = true
+
+	timer.Simple(0, function()
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			ent:CollisionRulesChanged()
+		end
+	end)
+end
+
 MODE.GuiltDisabled = true
 MODE.PoliceTime = 9999
 
@@ -402,7 +425,7 @@ end
 
 function MODE:Disappear(ply)
 	ply:SetCustomCollisionCheck(true)
-	ply:CollisionRulesChanged()
+	SafeCollisionRulesChanged(ply)
 	ply:SetNetVar("disappearance", true)
 
 	if self.CurrentVictim == ply then
@@ -578,7 +601,7 @@ function MODE:ResetNetworkVars(ply)
 	ply:SetLocalVar("afterlife", nil)
 	ply:SetNetVar("disappearance", nil)
 	ply:SetCustomCollisionCheck(false)
-	ply:CollisionRulesChanged()
+	SafeCollisionRulesChanged(ply)
 end
 
 function MODE:PlayerSilentDeath(ply)
@@ -607,7 +630,7 @@ end
 
 function MODE:Ragdoll_Create(ply, ent)
 	ent:SetCustomCollisionCheck(true)
-	ent:CollisionRulesChanged()
+	SafeCollisionRulesChanged(ent)
 end
 
 function MODE:HG_PlayerCanHearPlayersVoice(listener, talker)
