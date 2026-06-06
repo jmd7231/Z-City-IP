@@ -15,28 +15,10 @@ local teams = {
     },
 }
 
-hook.Add("StartCommand", "RevolutionaryWar_DisallowMoveOrShooting", function(_, cmd)
-    if zb.CROUND ~= "revolutionarywar" or (zb.ROUND_START or 0) + 10 <= CurTime() then return end
-
-    cmd:RemoveKey(IN_ATTACK)
-    cmd:RemoveKey(IN_ATTACK2)
-    cmd:RemoveKey(IN_FORWARD)
-    cmd:RemoveKey(IN_BACK)
-    cmd:RemoveKey(IN_MOVELEFT)
-    cmd:RemoveKey(IN_MOVERIGHT)
-end)
-
 function MODE:HUDPaint()
     local startTime = zb.ROUND_START or CurTime()
-    local roundStart = startTime + 10
-
-    if CurTime() < roundStart then
-        local countdown = string.FormattedTime(roundStart - CurTime(), "%02i:%02i:%02i")
-        draw.SimpleText(countdown, "ZB_HomicideMedium", sw * 0.5, sh * 0.95, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    else
-        local timeLeft = math.max(startTime + (zb.ROUND_TIME or self.ROUND_TIME) - CurTime(), 0)
-        draw.SimpleText(string.FormattedTime(timeLeft, "%02i:%02i:%02i"), "ZB_HomicideMedium", sw * 0.5, sh * 0.95, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    end
+    local timeLeft = math.max(startTime + (zb.ROUND_TIME or self.ROUND_TIME) - CurTime(), 0)
+    draw.SimpleText(string.FormattedTime(timeLeft, "%02i:%02i:%02i"), "ZB_HomicideMedium", sw * 0.5, sh * 0.95, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
     if startTime + 8 < CurTime() or not lply:Alive() then return end
 

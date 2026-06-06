@@ -4,7 +4,7 @@ MODE.name = "revolutionarywar"
 MODE.PrintName = "Revolutionary War"
 MODE.Chance = 0.03
 MODE.BuyTime = 0
-MODE.start_time = 10
+MODE.start_time = 0
 MODE.buymenu = false
 MODE.ROUND_TIME = 240
 
