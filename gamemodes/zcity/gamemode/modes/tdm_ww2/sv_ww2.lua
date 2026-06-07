@@ -8,13 +8,19 @@ MODE.start_time = 0
 MODE.buymenu = false
 MODE.ROUND_TIME = 300
 
+local GERMAN_MODEL = "models/player/dod_german.mdl"
+local AMERICAN_MODEL = "models/player/dod_american.mdl"
+
+util.PrecacheModel(GERMAN_MODEL)
+util.PrecacheModel(AMERICAN_MODEL)
+
 local TEAM_LOADOUTS = {
     [0] = {
         name = "German",
         riflemanRole = "German Rifleman",
         gunnerRole = "German Machine Gunner",
         color = Color(75, 90, 65),
-        model = "models/player/dod_german.mdl",
+        model = GERMAN_MODEL,
         primaryWeapon = "weapon_mp40",
         machineGun = "weapon_mg34",
     },
@@ -23,7 +29,7 @@ local TEAM_LOADOUTS = {
         riflemanRole = "American Rifleman",
         gunnerRole = "American Machine Gunner",
         color = Color(75, 105, 145),
-        model = "models/player/dod_american.mdl",
+        model = AMERICAN_MODEL,
         primaryWeapon = "weapon_thompson",
         machineGun = "weapon_m249",
     },
@@ -105,6 +111,23 @@ local function FillWeaponAndGiveAmmo(ply, weapon, magazineCount)
     end
 end
 
+local function GiveSupportEquipment(ply)
+    local inventory = ply:GetNetVar("Inventory", {})
+    inventory.Weapons = inventory.Weapons or {}
+    inventory.Weapons.hg_sling = true
+    ply:SetNetVar("Inventory", inventory)
+
+    ply:Give("weapon_barrier_builder")
+    ply:Give("weapon_melee")
+    ply:Give("weapon_bandage_sh")
+    ply:Give("weapon_tourniquet")
+    ply:Give("weapon_hands_sh")
+
+    if ply.organism then
+        ply.organism.allowholster = true
+    end
+end
+
 local function ApplyTeamModel(ply, model)
     -- Appearance bodygroups, accessories, submaterials, and bone transforms are
     -- model-specific. Clear them before applying a DOD model so data from the
@@ -115,19 +138,30 @@ local function ApplyTeamModel(ply, model)
     ply:SetModel(model)
     ply:SetModelScale(1, 0)
     ply:SetSkin(0)
-    ply:SetBodyGroups("00000000000000000000")
 
-    local zeroVector = Vector(0, 0, 0)
-    local zeroAngle = Angle(0, 0, 0)
-    local fullScale = Vector(1, 1, 1)
-
-    for bone = 0, math.max(ply:GetBoneCount() - 1, 0) do
-        ply:ManipulateBonePosition(bone, zeroVector, true)
-        ply:ManipulateBoneAngles(bone, zeroAngle, true)
-        ply:ManipulateBoneScale(bone, fullScale, true)
+    for _, bodygroup in ipairs(ply:GetBodyGroups() or {}) do
+        ply:SetBodygroup(bodygroup.id, 0)
     end
 
-    ply:SetupBones()
+    local function ResetBones()
+        if not IsValid(ply) or ply:GetModel() ~= model then return end
+
+        local zeroVector = Vector(0, 0, 0)
+        local zeroAngle = Angle(0, 0, 0)
+        local fullScale = Vector(1, 1, 1)
+        local boneCount = ply:GetBoneCount() or 0
+
+        for bone = 0, boneCount - 1 do
+            ply:ManipulateBonePosition(bone, zeroVector, true)
+            ply:ManipulateBoneAngles(bone, zeroAngle, true)
+            ply:ManipulateBoneScale(bone, fullScale, true)
+        end
+
+        ply:SetupBones()
+    end
+
+    ResetBones()
+    timer.Simple(0, ResetBones)
 end
 
 local function VerifyTeamLoadout(ply, teamIndex, isMachineGunner)
@@ -144,11 +178,14 @@ local function VerifyTeamLoadout(ply, teamIndex, isMachineGunner)
     -- changing GetModel().
     ApplyTeamModel(ply, loadout.model)
 
+    -- Give the requested role weapon before optional support items so a failure
+    -- in inventory/organism setup cannot leave the player unarmed.
     local primary = GiveLoadoutWeapon(ply, weaponClass)
     FillWeaponAndGiveAmmo(ply, primary, magazineCount)
+    GiveSupportEquipment(ply)
 
     if IsValid(primary) then
-        ply:SelectWeapon(weaponClass)
+        ply:SelectWeapon(primary:GetClass())
     else
         ply:ChatPrint("Missing WW2 weapon class: " .. weaponClass)
     end
@@ -203,22 +240,11 @@ function MODE:GiveEquipment()
             ApplyTeamModel(ply, loadout.model)
             zb.GiveRole(ply, isMachineGunner and loadout.gunnerRole or loadout.riflemanRole, loadout.color)
 
-            local inventory = ply:GetNetVar("Inventory", {})
-            inventory.Weapons = inventory.Weapons or {}
-            inventory.Weapons.hg_sling = true
-            ply:SetNetVar("Inventory", inventory)
-
             local weaponClass = isMachineGunner and loadout.machineGun or loadout.primaryWeapon
             local magazineCount = isMachineGunner and 6 or 12
             local primary = GiveLoadoutWeapon(ply, weaponClass)
             FillWeaponAndGiveAmmo(ply, primary, magazineCount)
-
-            ply:Give("weapon_barrier_builder")
-            ply:Give("weapon_melee")
-            ply:Give("weapon_bandage_sh")
-            ply:Give("weapon_tourniquet")
-            ply:Give("weapon_hands_sh")
-            ply.organism.allowholster = true
+            GiveSupportEquipment(ply)
 
             if IsValid(primary) then
                 ply:SelectWeapon(primary:GetClass())
@@ -250,6 +276,18 @@ function MODE:RoundStart()
 
         ScheduleLoadoutVerification(ply, teamIndex, isMachineGunner)
     end
+end
+
+function MODE:PlayerSpawn(ply)
+    local teamIndex = ply:Team()
+    local loadout = TEAM_LOADOUTS[teamIndex]
+    if not loadout then return end
+
+    local isMachineGunner = ply.WW2TeamIndex == teamIndex and ply.WW2IsMachineGunner or false
+    ply.WW2TeamIndex = teamIndex
+    ply.WW2IsMachineGunner = isMachineGunner
+
+    ScheduleLoadoutVerification(ply, teamIndex, isMachineGunner)
 end
 
 function MODE:ShowSpare1()
