@@ -130,8 +130,14 @@ local function ApplyTeamModel(ply, model)
     ply:SetupBones()
 end
 
-local function VerifyTeamLoadout(ply, loadout, weaponClass, magazineCount)
-    if not IsValid(ply) or not ply:Alive() or TEAM_LOADOUTS[ply:Team()] ~= loadout then return end
+local function VerifyTeamLoadout(ply, teamIndex, isMachineGunner)
+    if not IsValid(ply) or not ply:Alive() or ply:Team() ~= teamIndex then return end
+
+    local loadout = TEAM_LOADOUTS[teamIndex]
+    if not loadout then return end
+
+    local weaponClass = isMachineGunner and loadout.machineGun or loadout.primaryWeapon
+    local magazineCount = isMachineGunner and 6 or 12
 
     -- Reapply even when the model path already matches: a later appearance hook
     -- can change bodygroups, submaterials, accessories, or bone transforms without
@@ -148,10 +154,10 @@ local function VerifyTeamLoadout(ply, loadout, weaponClass, magazineCount)
     end
 end
 
-local function ScheduleLoadoutVerification(ply, loadout, weaponClass, magazineCount)
-    for _, delay in ipairs({0.5, 1.5}) do
+local function ScheduleLoadoutVerification(ply, teamIndex, isMachineGunner)
+    for _, delay in ipairs({0.25, 1, 3}) do
         timer.Simple(delay, function()
-            VerifyTeamLoadout(ply, loadout, weaponClass, magazineCount)
+            VerifyTeamLoadout(ply, teamIndex, isMachineGunner)
         end)
     end
 end
@@ -185,7 +191,10 @@ function MODE:GiveEquipment()
             local loadout = TEAM_LOADOUTS[ply:Team()]
             if not loadout then continue end
 
-            local isMachineGunner = machineGunners[ply:Team()][ply] == true
+            local teamIndex = ply:Team()
+            local isMachineGunner = machineGunners[teamIndex][ply] == true
+            ply.WW2TeamIndex = teamIndex
+            ply.WW2IsMachineGunner = isMachineGunner
 
             ply:SetSuppressPickupNotices(true)
             ply.noSound = true
@@ -217,7 +226,7 @@ function MODE:GiveEquipment()
                 ply:SelectWeapon("weapon_hands_sh")
             end
 
-            ScheduleLoadoutVerification(ply, loadout, weaponClass, magazineCount)
+            ScheduleLoadoutVerification(ply, teamIndex, isMachineGunner)
 
             timer.Simple(0.1, function()
                 if IsValid(ply) then
@@ -228,6 +237,19 @@ function MODE:GiveEquipment()
             ply:SetSuppressPickupNotices(false)
         end
     end)
+end
+
+function MODE:RoundStart()
+    for _, ply in player.Iterator() do
+        if ply:Team() ~= TEAM_SPECTATOR then
+            ply:Freeze(false)
+        end
+
+        local teamIndex = ply:Team()
+        local isMachineGunner = ply.WW2TeamIndex == teamIndex and ply.WW2IsMachineGunner or false
+
+        ScheduleLoadoutVerification(ply, teamIndex, isMachineGunner)
+    end
 end
 
 function MODE:ShowSpare1()
