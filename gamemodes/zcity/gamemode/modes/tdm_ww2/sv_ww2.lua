@@ -20,6 +20,7 @@ local TEAM_LOADOUTS = {
         riflemanRole = "German Rifleman",
         gunnerRole = "German Machine Gunner",
         color = Color(75, 90, 65),
+        playerClass = "ww2_german",
         model = GERMAN_MODEL,
         primaryWeapon = "weapon_mp40",
         machineGun = "weapon_mg34",
@@ -29,6 +30,7 @@ local TEAM_LOADOUTS = {
         riflemanRole = "American Rifleman",
         gunnerRole = "American Machine Gunner",
         color = Color(75, 105, 145),
+        playerClass = "ww2_american",
         model = AMERICAN_MODEL,
         primaryWeapon = "weapon_thompson",
         machineGun = "weapon_m249",
@@ -173,6 +175,10 @@ local function VerifyTeamLoadout(ply, teamIndex, isMachineGunner)
     local weaponClass = isMachineGunner and loadout.machineGun or loadout.primaryWeapon
     local magazineCount = isMachineGunner and 6 or 12
 
+    if ply.PlayerClassName ~= loadout.playerClass then
+        ply:SetPlayerClass(loadout.playerClass)
+    end
+
     -- Reapply even when the model path already matches: a later appearance hook
     -- can change bodygroups, submaterials, accessories, or bone transforms without
     -- changing GetModel().
@@ -235,7 +241,7 @@ function MODE:GiveEquipment()
 
             ply:SetSuppressPickupNotices(true)
             ply.noSound = true
-            ply:SetPlayerClass()
+            ply:SetPlayerClass(loadout.playerClass)
 
             ApplyTeamModel(ply, loadout.model)
             zb.GiveRole(ply, isMachineGunner and loadout.gunnerRole or loadout.riflemanRole, loadout.color)
