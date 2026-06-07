@@ -100,6 +100,33 @@ local function FillWeaponAndGiveAmmo(ply, weapon, magazineCount)
     end
 end
 
+local function ApplyTeamModel(ply, model, fallbackModel)
+    local selectedModel = util.IsValidModel(model) and model or fallbackModel
+
+    -- Appearance bodygroups, accessories, submaterials, and bone transforms are
+    -- model-specific. Clear them before applying a DOD model so data from the
+    -- player's normal appearance cannot deform or clip through the WW2 model.
+    ply:SetNetVar("Accessories", "")
+    ply.CurAppearance = {}
+    ply:SetSubMaterial()
+    ply:SetModel(selectedModel)
+    ply:SetModelScale(1, 0)
+    ply:SetSkin(0)
+    ply:SetBodyGroups("00000000000000000000")
+
+    local zeroVector = Vector(0, 0, 0)
+    local zeroAngle = Angle(0, 0, 0)
+    local fullScale = Vector(1, 1, 1)
+
+    for bone = 0, math.max(ply:GetBoneCount() - 1, 0) do
+        ply:ManipulateBonePosition(bone, zeroVector, true)
+        ply:ManipulateBoneAngles(bone, zeroAngle, true)
+        ply:ManipulateBoneScale(bone, fullScale, true)
+    end
+
+    ply:SetupBones()
+end
+
 function MODE:GetTeamSpawn()
     local germanSpawns = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_T"))
     local americanSpawns = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_CT"))
@@ -136,7 +163,7 @@ function MODE:GiveEquipment()
             ply:SetPlayerClass()
 
             local fallbackModel = ply:Team() == 0 and "models/player/combine_soldier.mdl" or "models/player/group03/male_07.mdl"
-            ply:SetModel(util.IsValidModel(loadout.model) and loadout.model or fallbackModel)
+            ApplyTeamModel(ply, loadout.model, fallbackModel)
             zb.GiveRole(ply, isMachineGunner and loadout.gunnerRole or loadout.riflemanRole, loadout.color)
 
             local inventory = ply:GetNetVar("Inventory", {})
