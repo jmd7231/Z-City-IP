@@ -458,15 +458,68 @@ function zb.CheckChances()
 	end
 end
 
+local ROUND_LIST_SIZE = 20
+local TDM_ROUND_RATIO = 0.35
+
+local function GetModeRoot(name)
+	local modeName = zb:GetMode(name)
+	local mode = modeName and zb.modes[modeName]
+
+	while mode and mode.base do
+		modeName = mode.base
+		mode = zb.modes[modeName]
+	end
+
+	return modeName
+end
+
+local function FilterModeChances(chances, rootName)
+	local filtered = {}
+
+	for name, chance in pairs(chances) do
+		if chance > 0 and GetModeRoot(name) == rootName then
+			filtered[name] = chance
+		end
+	end
+
+	return filtered
+end
+
+local function AddWeightedRounds(roundList, chances, count)
+	if table.IsEmpty(chances) then return false end
+
+	for _ = 1, count do
+		roundList[#roundList + 1] = zb.WeightedChanceMode(chances)
+	end
+
+	return true
+end
+
+local function ShuffleRoundList(roundList)
+	for i = #roundList, 2, -1 do
+		local j = math.random(i)
+		roundList[i], roundList[j] = roundList[j], roundList[i]
+	end
+end
+
 function zb.RerollChances()
 	zb.RoundList = {}
 
 	local chances = zb.GetModesChances()
+	local tdmChances = FilterModeChances(chances, "tdm")
+	local homicideChances = FilterModeChances(chances, "hmcd")
 
-	for i = 1, 20 do
-		local round = zb.WeightedChanceMode(chances)
+	local tdmRounds = math.Round(ROUND_LIST_SIZE * TDM_ROUND_RATIO)
+	local homicideRounds = ROUND_LIST_SIZE - tdmRounds
 
-		zb.RoundList[i] = round
+	if not AddWeightedRounds(zb.RoundList, tdmChances, tdmRounds) or not AddWeightedRounds(zb.RoundList, homicideChances, homicideRounds) then
+		zb.RoundList = {}
+
+		for i = 1, ROUND_LIST_SIZE do
+			zb.RoundList[i] = zb.WeightedChanceMode(chances)
+		end
+	else
+		ShuffleRoundList(zb.RoundList)
 	end
 
 	zb.nextround = table.remove(zb.RoundList, 1)
