@@ -15,8 +15,8 @@ local TEAM_LOADOUTS = {
         gunnerRole = "German Machine Gunner",
         color = Color(75, 90, 65),
         model = "models/player/dod_german.mdl",
-        primaryWeapons = {"weapon_mp40", "weapon_mp5"},
-        machineGuns = {"weapon_mg42", "weapon_m249"},
+        primaryWeapon = "weapon_mp40",
+        machineGun = "weapon_mg34",
     },
     [1] = {
         name = "American",
@@ -24,8 +24,8 @@ local TEAM_LOADOUTS = {
         gunnerRole = "American Machine Gunner",
         color = Color(75, 105, 145),
         model = "models/player/dod_american.mdl",
-        primaryWeapons = {"weapon_thompson", "weapon_tommygun", "weapon_akm"},
-        machineGuns = {"weapon_m249"},
+        primaryWeapon = "weapon_thomson",
+        machineGun = "weapon_m249",
     },
 }
 
@@ -53,13 +53,37 @@ local function GetLivingTeamPlayers(teamIndex)
     return players
 end
 
-local function GiveFirstAvailableWeapon(ply, classes)
-    for _, className in ipairs(classes) do
-        if weapons.GetStored(className) then
-            local weapon = ply:Give(className)
-            if IsValid(weapon) then return weapon end
+local function GiveLoadoutWeapon(ply, className)
+    if not weapons.GetStored(className) then return end
+
+    local weapon = ply:Give(className)
+    if IsValid(weapon) then return weapon end
+end
+
+local function SelectMachineGunners(candidates)
+    local selected = {}
+    if #candidates == 0 then return selected end
+
+    local pool = table.Copy(candidates)
+    local maximumGunners = math.max(1, math.ceil(#pool / 2))
+    local gunnerCount = 1
+
+    -- Every additional teammate has a 25% chance to add another machine gunner.
+    -- At most half of a team can receive the role, keeping standard weapons common.
+    for _ = 2, #pool do
+        if gunnerCount >= maximumGunners then break end
+        if math.Rand(0, 1) <= 0.25 then
+            gunnerCount = gunnerCount + 1
         end
     end
+
+    for _ = 1, gunnerCount do
+        local index = math.random(#pool)
+        selected[pool[index]] = true
+        table.remove(pool, index)
+    end
+
+    return selected
 end
 
 local function FillWeaponAndGiveAmmo(ply, weapon, magazineCount)
@@ -96,8 +120,7 @@ function MODE:GiveEquipment()
         local machineGunners = {}
 
         for teamIndex in pairs(TEAM_LOADOUTS) do
-            local candidates = GetLivingTeamPlayers(teamIndex)
-            machineGunners[teamIndex] = #candidates > 0 and table.Random(candidates) or nil
+            machineGunners[teamIndex] = SelectMachineGunners(GetLivingTeamPlayers(teamIndex))
         end
 
         for _, ply in player.Iterator() do
@@ -106,7 +129,7 @@ function MODE:GiveEquipment()
             local loadout = TEAM_LOADOUTS[ply:Team()]
             if not loadout then continue end
 
-            local isMachineGunner = machineGunners[ply:Team()] == ply
+            local isMachineGunner = machineGunners[ply:Team()][ply] == true
 
             ply:SetSuppressPickupNotices(true)
             ply.noSound = true
@@ -121,7 +144,8 @@ function MODE:GiveEquipment()
             inventory.Weapons.hg_sling = true
             ply:SetNetVar("Inventory", inventory)
 
-            local primary = GiveFirstAvailableWeapon(ply, isMachineGunner and loadout.machineGuns or loadout.primaryWeapons)
+            local weaponClass = isMachineGunner and loadout.machineGun or loadout.primaryWeapon
+            local primary = GiveLoadoutWeapon(ply, weaponClass)
             FillWeaponAndGiveAmmo(ply, primary, isMachineGunner and 6 or 12)
 
             ply:Give("weapon_barrier_builder")
@@ -135,7 +159,7 @@ function MODE:GiveEquipment()
                 ply:SelectWeapon(primary:GetClass())
             else
                 ply:SelectWeapon("weapon_hands_sh")
-                ply:ChatPrint("The WW2 weapon addon is unavailable; no primary weapon could be given.")
+                ply:ChatPrint("Missing WW2 weapon class: " .. weaponClass)
             end
 
             timer.Simple(0.1, function()
