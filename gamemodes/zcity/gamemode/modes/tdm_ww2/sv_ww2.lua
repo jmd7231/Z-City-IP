@@ -111,7 +111,9 @@ function MODE:GiveEquipment()
             ply:SetSuppressPickupNotices(true)
             ply.noSound = true
             ply:SetPlayerClass()
-            ply:SetModel(loadout.model)
+
+            local fallbackModel = ply:Team() == 0 and "models/player/combine_soldier.mdl" or "models/player/group03/male_07.mdl"
+            ply:SetModel(util.IsValidModel(loadout.model) and loadout.model or fallbackModel)
             zb.GiveRole(ply, isMachineGunner and loadout.gunnerRole or loadout.riflemanRole, loadout.color)
 
             local inventory = ply:GetNetVar("Inventory", {})

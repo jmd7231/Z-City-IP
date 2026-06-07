@@ -28,7 +28,7 @@ SWEP.Secondary.Ammo = "none"
 SWEP.BuildTime = 5
 SWEP.BuildRange = 180
 SWEP.MaxBarricades = 6
-SWEP.SandbagModel = "models/props_fortifications/sandbags_line2.mdl"
+SWEP.SandbagModel = "models/props_c17/concrete_barrier001a.mdl"
 
 local placementMins = Vector(-48, -14, 2)
 local placementMaxs = Vector(48, 14, 42)

@@ -6,9 +6,8 @@ SWEP.Author = "Auto-Ordnance"
 SWEP.Instructions = "American submachine gun chambered in .45 ACP."
 SWEP.Category = "Weapons - Submachineguns"
 SWEP.Spawnable = false
-SWEP.WorldModel = "models/weapons/w_thompson.mdl"
-SWEP.WorldModelFake = "models/weapons/w_thompson.mdl"
-SWEP.IconOverride = "vgui/entities/weapon_thompson"
+-- Keep the AKM base models and fake-model offsets so Homigrad always has the
+-- attachments and bones required by its first-person renderer.
 SWEP.Primary.ClipSize = 30
 SWEP.Primary.DefaultClip = 30
 SWEP.Primary.Automatic = true

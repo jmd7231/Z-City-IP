@@ -4,7 +4,7 @@ ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 ENT.PrintName = "Sandbag Barricade"
 ENT.Spawnable = false
-ENT.Model = "models/props_fortifications/sandbags_line2.mdl"
+ENT.Model = "models/props_c17/concrete_barrier001a.mdl"
 ENT.MaxHealth = 600
 
 function ENT:Initialize()
