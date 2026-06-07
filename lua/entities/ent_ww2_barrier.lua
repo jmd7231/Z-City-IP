@@ -6,6 +6,7 @@ ENT.PrintName = "Defensive Barrier"
 ENT.Spawnable = false
 ENT.Model = "models/props_c17/concrete_barrier001a.mdl"
 ENT.MaxBarrierHealth = 2000
+ENT.MaxHealth = 2000
 
 function ENT:SetupDataTables()
     self:NetworkVar("Int", 0, "BarrierHealth")
@@ -22,6 +23,7 @@ function ENT:Initialize()
     self:SetUseType(SIMPLE_USE)
     self:SetBarrierMaxHealth(self.MaxBarrierHealth)
     self:SetBarrierHealth(self.MaxBarrierHealth)
+    self:SetMaxHealth(self.MaxBarrierHealth)
     self:SetHealth(self.MaxBarrierHealth)
 
     local physics = self:GetPhysicsObject()

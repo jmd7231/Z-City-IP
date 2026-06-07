@@ -202,6 +202,7 @@ end
 if CLIENT then
     local validGhostColor = Color(80, 220, 120, 135)
     local blockedGhostColor = Color(235, 70, 70, 135)
+    local buildingGhostColor = Color(80, 170, 255, 190)
 
     function SWEP:GetBarrierGhost()
         if IsValid(self.BarrierGhost) then return self.BarrierGhost end
@@ -248,22 +249,38 @@ if CLIENT then
         if not IsValid(owner) or not owner:Alive() then return end
 
         local weapon = owner:GetActiveWeapon()
-        if not IsValid(weapon) or weapon:GetClass() ~= "weapon_barrier_builder" or weapon:GetBuilding() then return end
+        if not IsValid(weapon) or weapon:GetClass() ~= "weapon_barrier_builder" then return end
 
-        local position, angles, valid = weapon:GetPlacement(owner)
+        local building = weapon:GetBuilding()
+        local position, angles, valid
+        local progress = 1
+
+        if building then
+            position = weapon:GetBuildPosition()
+            angles = weapon:GetBuildAngles()
+            valid = true
+            progress = math.Clamp(1 - (weapon:GetBuildEndsAt() - CurTime()) / weapon.BuildTime, 0, 1)
+        else
+            position, angles, valid = weapon:GetPlacement(owner)
+        end
+
         if not position then return end
 
         local ghost = weapon:GetBarrierGhost()
         if not IsValid(ghost) then return end
 
-        local color = valid and validGhostColor or blockedGhostColor
+        local color = building and buildingGhostColor or (valid and validGhostColor or blockedGhostColor)
+        local renderMatrix = Matrix()
+        renderMatrix:SetScale(Vector(1, 1, building and math.max(progress, 0.03) or 1))
+
         ghost:SetPos(position)
         ghost:SetAngles(angles)
         ghost:SetColor(color)
+        ghost:EnableMatrix("RenderMultiply", renderMatrix)
         ghost:SetupBones()
 
         render.SuppressEngineLighting(true)
-        render.SetBlend(color.a / 255)
+        render.SetBlend((color.a / 255) * (building and Lerp(progress, 0.35, 1) or 1))
         render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
         ghost:DrawModel()
         render.SetColorModulation(1, 1, 1)
