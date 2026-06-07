@@ -54,8 +54,13 @@ local function GetLivingTeamPlayers(teamIndex)
 end
 
 local function GiveLoadoutWeapon(ply, className)
-    if not weapons.GetStored(className) then return end
+    if ply:HasWeapon(className) then
+        return ply:GetWeapon(className)
+    end
 
+    -- These WW2 SWEPs are supplied by a mounted addon. Calling Give directly is
+    -- more reliable than prechecking the local registry, which may not expose an
+    -- externally registered weapon even though Player:Give can create it.
     local weapon = ply:Give(className)
     if IsValid(weapon) then return weapon end
 end
@@ -100,16 +105,14 @@ local function FillWeaponAndGiveAmmo(ply, weapon, magazineCount)
     end
 end
 
-local function ApplyTeamModel(ply, model, fallbackModel)
-    local selectedModel = util.IsValidModel(model) and model or fallbackModel
-
+local function ApplyTeamModel(ply, model)
     -- Appearance bodygroups, accessories, submaterials, and bone transforms are
     -- model-specific. Clear them before applying a DOD model so data from the
     -- player's normal appearance cannot deform or clip through the WW2 model.
     ply:SetNetVar("Accessories", "")
     ply.CurAppearance = {}
     ply:SetSubMaterial()
-    ply:SetModel(selectedModel)
+    ply:SetModel(model)
     ply:SetModelScale(1, 0)
     ply:SetSkin(0)
     ply:SetBodyGroups("00000000000000000000")
@@ -125,6 +128,32 @@ local function ApplyTeamModel(ply, model, fallbackModel)
     end
 
     ply:SetupBones()
+end
+
+local function VerifyTeamLoadout(ply, loadout, weaponClass, magazineCount)
+    if not IsValid(ply) or not ply:Alive() or TEAM_LOADOUTS[ply:Team()] ~= loadout then return end
+
+    -- Reapply even when the model path already matches: a later appearance hook
+    -- can change bodygroups, submaterials, accessories, or bone transforms without
+    -- changing GetModel().
+    ApplyTeamModel(ply, loadout.model)
+
+    local primary = GiveLoadoutWeapon(ply, weaponClass)
+    FillWeaponAndGiveAmmo(ply, primary, magazineCount)
+
+    if IsValid(primary) then
+        ply:SelectWeapon(weaponClass)
+    else
+        ply:ChatPrint("Missing WW2 weapon class: " .. weaponClass)
+    end
+end
+
+local function ScheduleLoadoutVerification(ply, loadout, weaponClass, magazineCount)
+    for _, delay in ipairs({0.5, 1.5}) do
+        timer.Simple(delay, function()
+            VerifyTeamLoadout(ply, loadout, weaponClass, magazineCount)
+        end)
+    end
 end
 
 function MODE:GetTeamSpawn()
@@ -162,8 +191,7 @@ function MODE:GiveEquipment()
             ply.noSound = true
             ply:SetPlayerClass()
 
-            local fallbackModel = ply:Team() == 0 and "models/player/combine_soldier.mdl" or "models/player/group03/male_07.mdl"
-            ApplyTeamModel(ply, loadout.model, fallbackModel)
+            ApplyTeamModel(ply, loadout.model)
             zb.GiveRole(ply, isMachineGunner and loadout.gunnerRole or loadout.riflemanRole, loadout.color)
 
             local inventory = ply:GetNetVar("Inventory", {})
@@ -172,8 +200,9 @@ function MODE:GiveEquipment()
             ply:SetNetVar("Inventory", inventory)
 
             local weaponClass = isMachineGunner and loadout.machineGun or loadout.primaryWeapon
+            local magazineCount = isMachineGunner and 6 or 12
             local primary = GiveLoadoutWeapon(ply, weaponClass)
-            FillWeaponAndGiveAmmo(ply, primary, isMachineGunner and 6 or 12)
+            FillWeaponAndGiveAmmo(ply, primary, magazineCount)
 
             ply:Give("weapon_barrier_builder")
             ply:Give("weapon_melee")
@@ -186,8 +215,9 @@ function MODE:GiveEquipment()
                 ply:SelectWeapon(primary:GetClass())
             else
                 ply:SelectWeapon("weapon_hands_sh")
-                ply:ChatPrint("Missing WW2 weapon class: " .. weaponClass)
             end
+
+            ScheduleLoadoutVerification(ply, loadout, weaponClass, magazineCount)
 
             timer.Simple(0.1, function()
                 if IsValid(ply) then
