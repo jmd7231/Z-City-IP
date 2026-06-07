@@ -1,9 +1,9 @@
 if SERVER then AddCSLuaFile() end
 
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Sandbag Builder"
+SWEP.PrintName = "Barrier Builder"
 SWEP.Author = "Z-City"
-SWEP.Instructions = "LMB: build a sandbag barricade (5 seconds)\nRMB: rotate placement\nReload: cancel construction"
+SWEP.Instructions = "LMB: build a defensive barrier (5 seconds)\nRMB: rotate placement\nReload: cancel construction"
 SWEP.Category = "Z-City"
 SWEP.Spawnable = false
 SWEP.AdminOnly = false
@@ -27,8 +27,8 @@ SWEP.Secondary.Ammo = "none"
 
 SWEP.BuildTime = 5
 SWEP.BuildRange = 180
-SWEP.MaxBarricades = 6
-SWEP.SandbagModel = "models/props_c17/concrete_barrier001a.mdl"
+SWEP.MaxBarriers = 6
+SWEP.BarrierModel = "models/props_c17/concrete_barrier001a.mdl"
 
 local placementMins = Vector(-48, -14, 2)
 local placementMaxs = Vector(48, 14, 42)
@@ -74,11 +74,11 @@ function SWEP:GetPlacement(owner)
     return position, angles, not blocked
 end
 
-function SWEP:CountOwnerBarricades(owner)
+function SWEP:CountOwnerBarriers(owner)
     local count = 0
 
-    for _, barricade in ipairs(ents.FindByClass("ent_ww2_sandbag")) do
-        if barricade:GetCreator() == owner then
+    for _, barrier in ipairs(ents.FindByClass("ent_ww2_barrier")) do
+        if barrier:GetCreator() == owner then
             count = count + 1
         end
     end
@@ -105,19 +105,19 @@ function SWEP:PrimaryAttack()
     local owner = self:GetOwner()
     if not IsValid(owner) or not owner:Alive() then return end
 
-    if self:CountOwnerBarricades(owner) >= self.MaxBarricades then
-        owner:ChatPrint("You may only have " .. self.MaxBarricades .. " sandbag barricades at once.")
+    if self:CountOwnerBarriers(owner) >= self.MaxBarriers then
+        owner:ChatPrint("You may only have " .. self.MaxBarriers .. " defensive barriers at once.")
         return
     end
 
     local position, angles, valid = self:GetPlacement(owner)
     if not position then
-        owner:ChatPrint("Aim at nearby, reasonably flat ground to build sandbags.")
+        owner:ChatPrint("Aim at nearby, reasonably flat ground to build a barrier.")
         return
     end
 
     if not valid then
-        owner:ChatPrint("There is not enough room to build sandbags there.")
+        owner:ChatPrint("There is not enough room to build a barrier there.")
         return
     end
 
@@ -138,7 +138,7 @@ end
 
 function SWEP:Reload()
     if SERVER then
-        self:CancelBuild("Sandbag construction cancelled.")
+        self:CancelBuild("Barrier construction cancelled.")
     end
 end
 
@@ -152,7 +152,7 @@ function SWEP:Think()
     end
 
     if owner:GetPos():DistToSqr(self:GetBuildPosition()) > (self.BuildRange + 80) ^ 2 then
-        self:CancelBuild("You moved too far away; sandbag construction cancelled.")
+        self:CancelBuild("You moved too far away; barrier construction cancelled.")
         return
     end
 
@@ -168,21 +168,21 @@ function SWEP:Think()
     }).Hit
 
     if blocked then
-        self:CancelBuild("The sandbag site became blocked.")
+        self:CancelBuild("The barrier site became blocked.")
         return
     end
 
-    local barricade = ents.Create("ent_ww2_sandbag")
-    if not IsValid(barricade) then
-        self:CancelBuild("The sandbag barricade could not be created.")
+    local barrier = ents.Create("ent_ww2_barrier")
+    if not IsValid(barrier) then
+        self:CancelBuild("The defensive barrier could not be created.")
         return
     end
 
-    barricade:SetPos(self:GetBuildPosition())
-    barricade:SetAngles(self:GetBuildAngles())
-    barricade:SetCreator(owner)
-    barricade:Spawn()
-    barricade:Activate()
+    barrier:SetPos(self:GetBuildPosition())
+    barrier:SetAngles(self:GetBuildAngles())
+    barrier:SetCreator(owner)
+    barrier:Spawn()
+    barrier:Activate()
 
     owner:EmitSound("physics/concrete/concrete_impact_hard3.wav", 70, 95)
     self:SetBuilding(false)
@@ -200,8 +200,21 @@ function SWEP:OnRemove()
 end
 
 if CLIENT then
-    local ghostColor = Color(100, 210, 100, 110)
-    local blockedColor = Color(220, 80, 80, 110)
+    local validGhostColor = Color(80, 220, 120, 135)
+    local blockedGhostColor = Color(235, 70, 70, 135)
+
+    function SWEP:GetBarrierGhost()
+        if IsValid(self.BarrierGhost) then return self.BarrierGhost end
+
+        self.BarrierGhost = ClientsideModel(self.BarrierModel, RENDERGROUP_TRANSLUCENT)
+        if not IsValid(self.BarrierGhost) then return end
+
+        self.BarrierGhost:SetNoDraw(true)
+        self.BarrierGhost:SetRenderMode(RENDERMODE_TRANSCOLOR)
+        self.BarrierGhost:SetMaterial("models/wireframe")
+
+        return self.BarrierGhost
+    end
 
     function SWEP:DrawHUD()
         local owner = self:GetOwner()
@@ -214,31 +227,47 @@ if CLIENT then
 
             draw.RoundedBox(4, x, y, width, height, Color(15, 15, 15, 220))
             draw.RoundedBox(4, x + 3, y + 3, (width - 6) * progress, height - 6, Color(190, 165, 90, 240))
-            draw.SimpleText("Building sandbags... " .. math.floor(progress * 100) .. "%", "DermaDefaultBold", ScrW() * 0.5, y + height * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            draw.SimpleText("Building barrier... " .. math.floor(progress * 100) .. "%", "DermaDefaultBold", ScrW() * 0.5, y + height * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
             return
         end
 
-        local position, angles, valid = self:GetPlacement(owner)
-        if not position then return end
-
-        if not IsValid(self.SandbagGhost) then
-            self.SandbagGhost = ClientsideModel(self.SandbagModel, RENDERGROUP_TRANSLUCENT)
-            if not IsValid(self.SandbagGhost) then return end
-            self.SandbagGhost:SetNoDraw(true)
-        end
-
-        self.SandbagGhost:SetPos(position)
-        self.SandbagGhost:SetAngles(angles)
-        self.SandbagGhost:SetColor(valid and ghostColor or blockedColor)
-        self.SandbagGhost:SetRenderMode(RENDERMODE_TRANSCOLOR)
-        self.SandbagGhost:DrawModel()
-
+        local _, _, valid = self:GetPlacement(owner)
         draw.SimpleText("LMB: build | RMB: rotate", "DermaDefaultBold", ScrW() * 0.5, ScrH() * 0.72, valid and color_white or Color(255, 100, 100), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 
     function SWEP:OnRemove()
-        if IsValid(self.SandbagGhost) then
-            self.SandbagGhost:Remove()
+        if IsValid(self.BarrierGhost) then
+            self.BarrierGhost:Remove()
         end
     end
+
+    hook.Add("PostDrawTranslucentRenderables", "WW2BarrierBuilderHologram", function(_, drawingSkybox)
+        if drawingSkybox then return end
+
+        local owner = LocalPlayer()
+        if not IsValid(owner) or not owner:Alive() then return end
+
+        local weapon = owner:GetActiveWeapon()
+        if not IsValid(weapon) or weapon:GetClass() ~= "weapon_barrier_builder" or weapon:GetBuilding() then return end
+
+        local position, angles, valid = weapon:GetPlacement(owner)
+        if not position then return end
+
+        local ghost = weapon:GetBarrierGhost()
+        if not IsValid(ghost) then return end
+
+        local color = valid and validGhostColor or blockedGhostColor
+        ghost:SetPos(position)
+        ghost:SetAngles(angles)
+        ghost:SetColor(color)
+        ghost:SetupBones()
+
+        render.SuppressEngineLighting(true)
+        render.SetBlend(color.a / 255)
+        render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
+        ghost:DrawModel()
+        render.SetColorModulation(1, 1, 1)
+        render.SetBlend(1)
+        render.SuppressEngineLighting(false)
+    end)
 end

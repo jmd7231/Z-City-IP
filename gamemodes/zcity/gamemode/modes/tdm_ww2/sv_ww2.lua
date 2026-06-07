@@ -124,7 +124,7 @@ function MODE:GiveEquipment()
             local primary = GiveFirstAvailableWeapon(ply, isMachineGunner and loadout.machineGuns or loadout.primaryWeapons)
             FillWeaponAndGiveAmmo(ply, primary, isMachineGunner and 6 or 12)
 
-            ply:Give("weapon_sandbag_builder")
+            ply:Give("weapon_barrier_builder")
             ply:Give("weapon_melee")
             ply:Give("weapon_bandage_sh")
             ply:Give("weapon_tourniquet")
