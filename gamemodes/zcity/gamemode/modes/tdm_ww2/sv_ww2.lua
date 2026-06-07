@@ -24,7 +24,7 @@ local TEAM_LOADOUTS = {
         gunnerRole = "American Machine Gunner",
         color = Color(75, 105, 145),
         model = "models/player/dod_american.mdl",
-        primaryWeapon = "weapon_thomson",
+        primaryWeapon = "weapon_thompson",
         machineGun = "weapon_m249",
     },
 }
