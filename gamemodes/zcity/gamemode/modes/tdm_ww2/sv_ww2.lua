@@ -29,18 +29,6 @@ local TEAM_LOADOUTS = {
     },
 }
 
-local function GetEntitySpawnPositions(classes)
-    local positions = {}
-
-    for _, className in ipairs(classes) do
-        for _, spawn in ipairs(ents.FindByClass(className)) do
-            positions[#positions + 1] = spawn:GetPos()
-        end
-    end
-
-    return positions
-end
-
 local function GetLivingTeamPlayers(teamIndex)
     local players = {}
 
@@ -100,17 +88,9 @@ local function FillWeaponAndGiveAmmo(ply, weapon, magazineCount)
     end
 end
 
-local function GetTeamSpawnPositions(entityClass, pointGroup)
-    local spawns = GetEntitySpawnPositions({entityClass})
-    if #spawns > 0 then return spawns end
-
-    -- GWars and standard TDM use these saved HMCD_TDM point groups.
-    return zb.TranslatePointsToVectors(zb.GetMapPoints(pointGroup))
-end
-
 function MODE:GetTeamSpawn()
-    local germanSpawns = GetTeamSpawnPositions("info_player_terrorist", "HMCD_TDM_T")
-    local americanSpawns = GetTeamSpawnPositions("info_player_counterterrorist", "HMCD_TDM_CT")
+    local germanSpawns = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_T"))
+    local americanSpawns = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_CT"))
 
     return germanSpawns, americanSpawns
 end
