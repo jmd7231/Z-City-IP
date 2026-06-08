@@ -3,7 +3,7 @@ if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
 SWEP.PrintName = "Barrier Builder"
 SWEP.Author = "Z-City"
-SWEP.Instructions = "LMB: build a defensive barrier (5 seconds)\nRMB: rotate placement\nReload: cancel construction"
+SWEP.Instructions = "LMB: build a defensive barrier (5 seconds, 30-second cooldown)\nRMB: rotate placement\nReload: cancel construction"
 SWEP.Category = "Z-City"
 SWEP.Spawnable = false
 SWEP.AdminOnly = false
@@ -26,12 +26,14 @@ SWEP.Secondary.Automatic = false
 SWEP.Secondary.Ammo = "none"
 
 SWEP.BuildTime = 5
+SWEP.BuildCooldown = 30
 SWEP.BuildRange = 180
 SWEP.MaxBarriers = 6
 SWEP.BarrierModel = "models/props_c17/concrete_barrier001a.mdl"
 
 local placementMins = Vector(-48, -14, 2)
 local placementMaxs = Vector(48, 14, 42)
+local cooldownNetworkKey = "WW2BarrierBuildReadyAt"
 
 function SWEP:SetupDataTables()
     self:NetworkVar("Bool", 0, "Building")
@@ -74,6 +76,12 @@ function SWEP:GetPlacement(owner)
     return position, angles, not blocked
 end
 
+function SWEP:GetBuildCooldownRemaining(owner)
+    if not IsValid(owner) then return 0 end
+
+    return math.max(owner:GetNWFloat(cooldownNetworkKey, 0) - CurTime(), 0)
+end
+
 function SWEP:CountOwnerBarriers(owner)
     local count = 0
 
@@ -104,6 +112,13 @@ function SWEP:PrimaryAttack()
 
     local owner = self:GetOwner()
     if not IsValid(owner) or not owner:Alive() then return end
+
+    local cooldownRemaining = self:GetBuildCooldownRemaining(owner)
+    if cooldownRemaining > 0 then
+        owner:ChatPrint("You must wait " .. math.ceil(cooldownRemaining) .. " seconds before building another barrier.")
+        self:SetNextPrimaryFire(CurTime() + math.min(cooldownRemaining, 1))
+        return
+    end
 
     if self:CountOwnerBarriers(owner) >= self.MaxBarriers then
         owner:ChatPrint("You may only have " .. self.MaxBarriers .. " defensive barriers at once.")
@@ -184,10 +199,13 @@ function SWEP:Think()
     barrier:Spawn()
     barrier:Activate()
 
+    local cooldownEndsAt = CurTime() + self.BuildCooldown
+    owner:SetNWFloat(cooldownNetworkKey, cooldownEndsAt)
     owner:EmitSound("physics/concrete/concrete_impact_hard3.wav", 70, 95)
+    owner:ChatPrint("Barrier built. You can build another in " .. self.BuildCooldown .. " seconds.")
     self:SetBuilding(false)
     self:SetBuildEndsAt(0)
-    self:SetNextPrimaryFire(CurTime() + 1)
+    self:SetNextPrimaryFire(cooldownEndsAt)
 end
 
 function SWEP:Holster()
@@ -232,6 +250,12 @@ if CLIENT then
             return
         end
 
+        local cooldownRemaining = self:GetBuildCooldownRemaining(owner)
+        if cooldownRemaining > 0 then
+            draw.SimpleText("Next barrier available in " .. math.ceil(cooldownRemaining) .. "s", "DermaDefaultBold", ScrW() * 0.5, ScrH() * 0.72, Color(255, 190, 90), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            return
+        end
+
         local _, _, valid = self:GetPlacement(owner)
         draw.SimpleText("LMB: build | RMB: rotate", "DermaDefaultBold", ScrW() * 0.5, ScrH() * 0.72, valid and color_white or Color(255, 100, 100), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
@@ -262,6 +286,7 @@ if CLIENT then
             progress = math.Clamp(1 - (weapon:GetBuildEndsAt() - CurTime()) / weapon.BuildTime, 0, 1)
         else
             position, angles, valid = weapon:GetPlacement(owner)
+            valid = valid and weapon:GetBuildCooldownRemaining(owner) <= 0
         end
 
         if not position then return end
