@@ -29,13 +29,11 @@ local TEAM_LOADOUTS = {
     },
 }
 
-local function GetEntitySpawnPositions(classes)
+local function GetEntitySpawnPositions(className)
     local positions = {}
 
-    for _, className in ipairs(classes) do
-        for _, spawn in ipairs(ents.FindByClass(className)) do
-            positions[#positions + 1] = spawn:GetPos()
-        end
+    for _, spawn in ipairs(ents.FindByClass(className)) do
+        positions[#positions + 1] = spawn:GetPos()
     end
 
     return positions
@@ -101,16 +99,8 @@ local function FillWeaponAndGiveAmmo(ply, weapon, magazineCount)
 end
 
 function MODE:GetTeamSpawn()
-    local germanSpawns = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_T"))
-    local americanSpawns = zb.TranslatePointsToVectors(zb.GetMapPoints("HMCD_TDM_CT"))
-
-    if #germanSpawns == 0 then
-        germanSpawns = GetEntitySpawnPositions({"info_player_terrorist", "info_player_axis", "info_player_rebel"})
-    end
-
-    if #americanSpawns == 0 then
-        americanSpawns = GetEntitySpawnPositions({"info_player_counterterrorist", "info_player_allies", "info_player_combine"})
-    end
+    local germanSpawns = GetEntitySpawnPositions("info_player_terrorist")
+    local americanSpawns = GetEntitySpawnPositions("info_player_counterterrorist")
 
     return germanSpawns, americanSpawns
 end
