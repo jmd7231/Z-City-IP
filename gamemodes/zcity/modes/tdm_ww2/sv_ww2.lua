@@ -135,8 +135,10 @@ function MODE:GiveEquipment()
             ply.noSound = true
             ply:SetPlayerClass()
 
-            local fallbackModel = ply:Team() == 0 and "models/player/combine_soldier.mdl" or "models/player/group03/male_07.mdl"
-            ply:SetModel(util.IsValidModel(loadout.model) and loadout.model or fallbackModel)
+            -- WW2 uniforms provide the complete appearance; do not layer saved cosmetics
+            -- (such as backpacks or hats) or unrelated fallback models over them.
+            ply:SetModel(loadout.model)
+            ply:SetNetVar("Accessories", "none")
             zb.GiveRole(ply, isMachineGunner and loadout.gunnerRole or loadout.riflemanRole, loadout.color)
 
             local inventory = ply:GetNetVar("Inventory", {})
