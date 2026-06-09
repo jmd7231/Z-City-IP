@@ -824,7 +824,9 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		org.shock_turn = 10 * (!org.otrub and 1 or 0.1)
 	
 		if org.shock > org.shock_turn * 1.5 * analgesiaMul * painkillerMul then
-			timer.Simple(0, function() hg.Fake(org.owner) end)
+			timer.Simple(0, function()
+				if IsValid(org.owner) then hg.Fake(org.owner) end
+			end)
 		end
 
 		if bullet and hg.ammotypeshuy[bullet.AmmoType] and hg.ammotypeshuy[bullet.AmmoType].BulletSettings.tranquilizer then
