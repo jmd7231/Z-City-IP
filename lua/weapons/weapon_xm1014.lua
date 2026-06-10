@@ -280,29 +280,37 @@ end
 
 
 SWEP.AnimsEvents = {
-	["sgreload_start_empty"] = {
-		[0.2] = function(self)
-			self:EmitSound("weapons/arccw_ud/m1014/breechload.ogg")
-			self:GetWM():ManipulateBoneScale(47, vector_full)
-		end,
-		[0.8] = function(self)
-			self:EmitSound("weapons/arccw_ud/m1014/breechclose.ogg")
-		end,
-		[0.9] = function(self)
-			self:GetWM():ManipulateBoneScale(47, vector_origin)
-		end,
-	},
-	["sgreload_insert"] = {
-		[0.0] = function(self)
-			self:EmitSound("weapons/arccw_ud/m1014/shell-insert-0"..math.random(1,3)..".ogg")
-			--
-			self:GetWM():ManipulateBoneScale(47, vector_full)
-		end,
-		[0.8] = function(self)
-			self:GetWM():ManipulateBoneScale(47, vector_origin)
-		end,
+		["sgreload_start_empty"] = {
+			[0.2] = function(self)
+				self:EmitSound("weapons/arccw_ud/m1014/breechload.ogg")
+				local wm = self:GetWM()
+				if not IsValid(wm) then return end
+				wm:ManipulateBoneScale(47, vector_full)
+			end,
+			[0.8] = function(self)
+				self:EmitSound("weapons/arccw_ud/m1014/breechclose.ogg")
+			end,
+			[0.9] = function(self)
+				local wm = self:GetWM()
+				if not IsValid(wm) then return end
+				wm:ManipulateBoneScale(47, vector_origin)
+			end,
+		},
+		["sgreload_insert"] = {
+			[0.0] = function(self)
+				self:EmitSound("weapons/arccw_ud/m1014/shell-insert-0"..math.random(1,3)..".ogg")
+				--
+				local wm = self:GetWM()
+				if not IsValid(wm) then return end
+				wm:ManipulateBoneScale(47, vector_full)
+			end,
+			[0.8] = function(self)
+				local wm = self:GetWM()
+				if not IsValid(wm) then return end
+				wm:ManipulateBoneScale(47, vector_origin)
+			end,
+		}
 	}
-}
 --local common = ")/arccw_uc/common/"
 --{s = {common .. "cloth_2.ogg", common .. "cloth_3.ogg", common .. "cloth_4.ogg", common .. "cloth_6.ogg", common .. "rattle.ogg"}, t = 0.05},
 
