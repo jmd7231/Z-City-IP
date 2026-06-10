@@ -641,6 +641,11 @@ function hg.MainTPIKFunction(ent, ply, wpn)
         end
         
         //local systime = SysTime()
+        if IsValid(wpn) then
+            wpn.lhandik = false
+            wpn.rhandik = false
+        end
+
         if wpn.SetHandPos then
             wpn:SetHandPos()
         end
@@ -909,8 +914,8 @@ function hg.DoTPIK(ply, ent)
     local ply_r_clavicle_matrix = ent:GetBoneMatrix(ply_r_clavicle_index)
     local ply_r_ulna_matrix 
     local ply_r_wrist_matrix
-    if ply_l_ulna_index and ply_r_wrist_matrixthen then
-        ply_r_ulna_matrix = ent:GetBoneMatrix(ply_l_ulna_index)
+    if ply_r_ulna_index and ply_r_wrist_index then
+        ply_r_ulna_matrix = ent:GetBoneMatrix(ply_r_ulna_index)
         ply_r_wrist_matrix = ent:GetBoneMatrix(ply_r_wrist_index)
     end
 
@@ -921,7 +926,7 @@ function hg.DoTPIK(ply, ent)
     local ply_l_clavicle_matrix = ent:GetBoneMatrix(ply_l_clavicle_index)
     local ply_l_ulna_matrix 
     local ply_l_wrist_matrix
-    if ply_l_ulna_index and ply_l_wrist_matrix then
+    if ply_l_ulna_index and ply_l_wrist_index then
         ply_l_ulna_matrix = ent:GetBoneMatrix(ply_l_ulna_index)
         ply_l_wrist_matrix = ent:GetBoneMatrix(ply_l_wrist_index)
     end
@@ -1274,8 +1279,6 @@ function hg.DoTPIK(ply, ent)
         end
     end
     
-    self.lhandik = false
-    self.rhandik = false
 end
 
 hg.IKSolve = solve

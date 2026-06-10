@@ -35,6 +35,12 @@ end
 
 SWEP.supportTPIK = true
 
+
+local EntityMeta = FindMetaTable("Entity")
+if EntityMeta and not EntityMeta.PullLHTowards then
+	function EntityMeta:PullLHTowards() end
+end
+
 SWEP.weaponPos = Vector(0,0,0)
 SWEP.weaponAng = Angle(0,0,0)
 
@@ -316,14 +322,13 @@ function SWEP:SetHandPos(noset)
 
 	self.rhandik = self.setrh
 	self.lhandik = self.setlh and (ply:GetTable().ChatGestureWeight < 0.1)
-
     local rhmat, lhmat = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_R_Hand")), ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_L_Hand"))
 
 	ply.rhold = rhmat
 	ply.lhold = lhmat
 
 	if self.lhandik and (ent == ply or hg.KeyDown(ply,IN_USE) or (ply:GetNetVar("lastFake",0) > CurTime())) and hg.CanUseLeftHand(ply) then
-		for _, bone in ipairs(bones) do
+		for _, bone in ipairs(bones or {}) do
 			local wm_boneindex = wm:LookupBone(bone)
 			if !wm_boneindex then continue end
 			local wm_bonematrix = wm:GetBoneMatrix(wm_boneindex)
@@ -353,7 +358,7 @@ function SWEP:SetHandPos(noset)
 	local bones = hg.TPIKBonesRH
 
 	if self.rhandik and (ent == ply or hg.KeyDown(ply,IN_USE) or (ply:GetNetVar("lastFake",0) > CurTime())) then
-		for _, bone in ipairs(bones) do
+		for _, bone in ipairs(bones or {}) do
 			local wm_boneindex = wm:LookupBone(bone)
 			if !wm_boneindex then continue end
 			local wm_bonematrix = wm:GetBoneMatrix(wm_boneindex)
