@@ -1972,6 +1972,83 @@ hook.Add("ShouldCollide","CustomCollisions",function(ent1,ent2)
 	end
 end)
 
+local fakeCollisionSpam = fakeCollisionSpam or {}
+local fakeCollisionCleanup = 0
+
+local function IsFakePlayerEntity(ent)
+	return IsValid(ent) and ent.organism and ent.organism.fakePlayer == true
+end
+
+local function IsDoorOrObject(ent)
+	if !IsValid(ent) then return false end
+
+	local class = ent:GetClass()
+	if isstring(class) and string.find(class, "door", 1, true) then
+		return true
+	end
+
+	return ent:GetMoveType() == MOVETYPE_VPHYSICS or ent:GetCollisionGroup() == COLLISION_GROUP_INTERACTIVE
+end
+
+hook.Add("ShouldCollide", "FakePlayerCollisionSpamBlock", function(ent1, ent2)
+	if !IsValid(ent1) or !IsValid(ent2) then return end
+
+	local fakeEnt
+	local otherEnt
+
+	if IsFakePlayerEntity(ent1) and IsDoorOrObject(ent2) then
+		fakeEnt = ent1
+		otherEnt = ent2
+	elseif IsFakePlayerEntity(ent2) and IsDoorOrObject(ent1) then
+		fakeEnt = ent2
+		otherEnt = ent1
+	else
+		return
+	end
+
+	local curTime = CurTime()
+	local key = fakeEnt:EntIndex() .. ":" .. otherEnt:EntIndex()
+	local state = fakeCollisionSpam[key]
+
+	if !state then
+		state = {
+			started = curTime,
+			lastHit = curTime,
+			hits = 1,
+			blockedUntil = 0
+		}
+		fakeCollisionSpam[key] = state
+	else
+		if curTime - state.lastHit > 0.35 then
+			state.started = curTime
+			state.hits = 1
+		else
+			state.hits = state.hits + 1
+		end
+
+		state.lastHit = curTime
+	end
+
+	if state.blockedUntil > curTime then
+		return false
+	end
+
+	if state.hits >= 40 and (curTime - state.started) >= 10 then
+		state.blockedUntil = curTime + 10
+		return false
+	end
+
+	if fakeCollisionCleanup < curTime then
+		fakeCollisionCleanup = curTime + 20
+
+		for pairKey, pairState in pairs(fakeCollisionSpam) do
+			if pairState.blockedUntil < curTime and (curTime - pairState.lastHit) > 20 then
+				fakeCollisionSpam[pairKey] = nil
+			end
+		end
+	end
+end)
+
 function SWEP:Animation()
 	local owner = self:GetOwner()
 
