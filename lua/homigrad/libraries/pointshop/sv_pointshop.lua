@@ -106,7 +106,7 @@ function plyMeta:PS_AddPoints( ammout )
         callback( self )
     end
 
-    return true, ammout .. " points added !pointshop to open a pointshop"
+    return true, ammout .. " IGcity points added. Use !pointshop to open the pointshop."
 end
 
 function plyMeta:PS_SetPoints( value )
@@ -126,7 +126,7 @@ function plyMeta:PS_TakePoints( ammout, callback )
     local pointshopVars = self:GetPointshopVars()
 
     if ammout > pointshopVars.points then
-        return false, "Not enough ZPoints."
+        return false, "Not enough IGcity points."
     end
 
     self:PS_SetPoints(pointshopVars.points - ammout)
@@ -135,7 +135,7 @@ function plyMeta:PS_TakePoints( ammout, callback )
         callback( self )
     end
 
-    return true, ammout .. " ZPoints spent."
+    return true, ammout .. " IGcity points spent."
 end
 
 -- ATTACK THE D POINT
@@ -271,6 +271,124 @@ net.Receive("hg_pointshop_net",function( _, ply )
     if table.Count(vars) > 5 then print(ply, "[PS-ZCity] The player is trying to send a bunch of vars to the net.", "NAME: "..str ) return end
 
     funcstring( PLUGIN, ply, unpack(vars) )
+end)
+
+
+local function IsVIPPlayer(ply)
+    if not IsValid(ply) then return false end
+
+    local group = string.lower(ply:GetUserGroup() or "")
+    return group == "vip" or string.find(group, "vip", 1, true) ~= nil
+end
+
+concommand.Add("hg_ps_give_vip_points", function(executor, _, args)
+    if IsValid(executor) and not executor:IsSuperAdmin() then
+        executor:PrintMessage(HUD_PRINTCONSOLE, "[PointShop] Superadmin access required.\n")
+        return
+    end
+
+    local targetArg = args[1]
+    local amount = tonumber(args[2] or "")
+
+    if not targetArg or not amount then
+        local usage = "Usage: hg_ps_give_vip_points <steamid64|name> <amount>\n"
+        if IsValid(executor) then
+            executor:PrintMessage(HUD_PRINTCONSOLE, usage)
+        else
+            print("[PointShop] " .. usage)
+        end
+        return
+    end
+
+    local target = nil
+    for _, ply in ipairs(player.GetAll()) do
+        if ply:SteamID64() == targetArg or string.find(string.lower(ply:Name()), string.lower(targetArg), 1, true) then
+            target = ply
+            break
+        end
+    end
+
+    if not IsValid(target) then
+        local msg = "[PointShop] VIP target not found online.\n"
+        if IsValid(executor) then executor:PrintMessage(HUD_PRINTCONSOLE, msg) else print(msg) end
+        return
+    end
+
+    if not IsVIPPlayer(target) then
+        local msg = "[PointShop] Target is not in a VIP usergroup.\n"
+        if IsValid(executor) then executor:PrintMessage(HUD_PRINTCONSOLE, msg) else print(msg) end
+        return
+    end
+
+    local ok, reason = target:PS_AddPoints(amount)
+    local result = "[PointShop] " .. (reason or "Unknown result") .. "\n"
+
+    if IsValid(executor) then
+        executor:PrintMessage(HUD_PRINTCONSOLE, result)
+    else
+        print(result)
+    end
+
+    if ok then
+        target:PrintMessage(HUD_PRINTCONSOLE, "[PointShop] You received " .. tostring(amount) .. " IGcity points.")
+    end
+end)
+
+local function GetPassivePointMultiplier(ply)
+    if IsVIPPlayer(ply) then
+        return 5
+    end
+
+    if (tonumber(ply.Karma) or 0) >= 100 then
+        return 2
+    end
+
+    return 1
+end
+
+local PASSIVE_IGPOINTS_PER_HOUR = 20
+local PASSIVE_IGPOINTS_INTERVAL = 300
+local PASSIVE_IGPOINTS_PER_TICK = PASSIVE_IGPOINTS_PER_HOUR * (PASSIVE_IGPOINTS_INTERVAL / 3600)
+
+hook.Add("Think", "PointShop_PassiveIGPoints", function()
+    if not PLUGIN.Active then return end
+
+    for _, ply in ipairs(player.GetAll()) do
+        if not IsValid(ply) or not ply:IsPlayer() then continue end
+
+        ply.PS_NextPassiveIGPoints = ply.PS_NextPassiveIGPoints or (CurTime() + PASSIVE_IGPOINTS_INTERVAL)
+        ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder or 0
+
+        if CurTime() < ply.PS_NextPassiveIGPoints then continue end
+
+        ply.PS_NextPassiveIGPoints = CurTime() + PASSIVE_IGPOINTS_INTERVAL
+
+        local pointMultiplier = GetPassivePointMultiplier(ply)
+
+        ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder + (PASSIVE_IGPOINTS_PER_TICK * pointMultiplier)
+
+        local wholePoints = math.floor(ply.PS_PassiveIGPointsRemainder)
+        if wholePoints < 1 then continue end
+
+        local ok = ply:PS_AddPoints(wholePoints)
+        if ok then
+            ply.PS_PassiveIGPointsRemainder = ply.PS_PassiveIGPointsRemainder - wholePoints
+            ply:ChatPrint("You earned " .. tostring(wholePoints) .. " IGcity points")
+        end
+    end
+end)
+
+hook.Add("ZB_StartRound", "PointShop_NotifyPassiveMultiplier", function()
+    for _, ply in ipairs(player.GetAll()) do
+        if not IsValid(ply) or not ply:IsPlayer() then continue end
+
+        local pointMultiplier = GetPassivePointMultiplier(ply)
+        if pointMultiplier == 5 then
+            ply:ChatPrint("[PointShop] VIP bonus active: you are earning 5x IGcity points over time.")
+        elseif pointMultiplier == 2 then
+            ply:ChatPrint("[PointShop] Karma bonus active (100+): you are earning 2x IGcity points over time.")
+        end
+    end
 end)
 
 hook.Add("HG_PlayerSay","OpenPointShop",function(ply, txtTbl, txt)

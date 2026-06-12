@@ -40,9 +40,14 @@ hg.Appearance.GenerateRandomName = GenerateRandomName
 -- Check access to all
 local access = {}
 --["STEAM_0:1:163575696"] = true -- distac our custom model creator
-local hg_appearance_access_for_all = ConVarExists("hg_appearance_access_for_all") and GetConVar("hg_appearance_access_for_all") or CreateConVar("hg_appearance_access_for_all", 1, {FCVAR_REPLICATED, FCVAR_NEVER_AS_STRING, FCVAR_ARCHIVE}, "Toggle free items in appearance for everyone", 0, 1)
+local hg_appearance_access_for_all = ConVarExists("hg_appearance_access_for_all") and GetConVar("hg_appearance_access_for_all") or CreateConVar("hg_appearance_access_for_all", 0, {FCVAR_REPLICATED, FCVAR_NEVER_AS_STRING, FCVAR_ARCHIVE}, "Toggle free items in appearance for everyone", 0, 1)
 if SERVER then
 	cvars.AddChangeCallback("hg_appearance_access_for_all", function(convar_name, value_old, value_new) SetGlobalBool("hg_appearance_access_for_all", hg_appearance_access_for_all:GetBool()) end)
+
+	if hg_appearance_access_for_all:GetBool() then
+		hg_appearance_access_for_all:SetBool(false)
+	end
+
 	SetGlobalBool("hg_appearance_access_for_all", hg_appearance_access_for_all:GetBool())
 end
 

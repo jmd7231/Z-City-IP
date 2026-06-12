@@ -3,10 +3,10 @@ hg.PointShop = hg.PointShop or {}
 
 local function AltDonate()
     Derma_Query(
-        "We are sorry about that, but for now donation only through sadsalat",
-        "Sorry...",
-        "Discord",
-        function() gui.OpenURL("https://discord.gg/475EmEdTgH") end,
+        "To get IGcity points donate here:",
+        "IGcity Points",
+        "Donate",
+        function() gui.OpenURL("https://imperfectgamersdonate.com/") end,
         "Close"
     )
 end
@@ -43,7 +43,7 @@ local PLUGIN = hg.PointShop
 local PANEL = {}
 
 local color_blacky = Color(15,15,15,254)
-local color_reddy = Color(155,0,0,100)
+local color_reddy = Color(0,145,155,120)
 local gradientUp = surface.GetTextureID("vgui/gradient-d")
 local gradient_r = surface.GetTextureID("vgui/gradient-r")
 
@@ -97,7 +97,7 @@ local function createButton(k,ent,size,Pan,mainpan)
         BPan:Dock(FILL)
         BPan:SetSize( size/2, size*0.15 )
         BPan:DockMargin(0,size*0.65,0,0)
-        BPan:SetText( LocalPlayer():PS_HasItem(ent.ID) and "SOLD" or ent.ISDONATE and "DONATE" or "Buy: "..ent.PRICE.." ZP" )
+        BPan:SetText( LocalPlayer():PS_HasItem(ent.ID) and "SOLD" or ent.ISDONATE and "DONATE" or "Buy: "..ent.PRICE.." IGP" )
         BPan:SetFont( "HomigradFontMedium" )
         function BPan:DoClick()
             if ent.ISDONATE then
@@ -106,12 +106,12 @@ local function createButton(k,ent,size,Pan,mainpan)
             return end
             if self.InWait then return end
             if LocalPlayer():PS_HasItem(ent.ID) then 
-                self:SetText( LocalPlayer():PS_HasItem(ent.ID) and "SOLD" or "Buy: "..(ent.ISDONATE and "DONATE" or ent.PRICE.." ZP")  ) 
+                self:SetText( LocalPlayer():PS_HasItem(ent.ID) and "SOLD" or "Buy: "..(ent.ISDONATE and "DONATE" or ent.PRICE.." IGP")  ) 
             return end
             self:SetText( "Wait..." )
             self.InWait = true
             PLUGIN:SendNET("BuyItem",{ent.ID},function(data)
-                self:SetText( LocalPlayer():PS_HasItem(ent.ID) and "SOLD" or "Buy: "..(ent.ISDONATE and "DONATE" or ent.PRICE.." ZP")  )
+                self:SetText( LocalPlayer():PS_HasItem(ent.ID) and "SOLD" or "Buy: "..(ent.ISDONATE and "DONATE" or ent.PRICE.." IGP")  )
                 mainpan:Update(data)
                 self.InWait = false
             end)
@@ -186,7 +186,7 @@ function PANEL:Init()
         lbl:SizeToContents()
 
         local lbl = vgui.Create( "DButton", UPan )
-        lbl:SetText( "Buy points" )
+        lbl:SetText( "Buy IGcity points" )
         lbl:SetFont( "HomigradFontLarge" )
         lbl:SetContentAlignment(5)
         
@@ -222,7 +222,7 @@ function PANEL:Init()
         self.moneyTxt = vgui.Create( "DLabel", UPan )
         local moneyTxt = self.moneyTxt
         moneyTxt:SetContentAlignment(6)
-        moneyTxt:SetText( " | ZP" )
+        moneyTxt:SetText( " | IGP" )
         moneyTxt:SetFont( "HomigradFontLarge" )
         
         moneyTxt:DockMargin( 0, 0, 25, 0 )
@@ -346,7 +346,7 @@ end
 function PANEL:Update( data )
     self.Itensens = data or self.Itensens
 
-    self.moneyTxt:SetText(self.Itensens.points.." | ZP")
+    self.moneyTxt:SetText(self.Itensens.points.." | IGP")
     --self.DmoneyTxt:SetText(self.Itensens.donpoints.." | DZP")
     --PrintTable(data)
 end
@@ -371,6 +371,8 @@ function PANEL:Close()
 end
 
 vgui.Register( "HG_PointShop", PANEL, "ZFrame")
+
+
 
 concommand.Add("hg_pointshop",function()
     PLUGIN:SendNET( "SendPointShopVars", nil, function( data )

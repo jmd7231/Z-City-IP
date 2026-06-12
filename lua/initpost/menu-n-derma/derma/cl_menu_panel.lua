@@ -6,6 +6,7 @@ local Selects = {
     {Title = "Disconnect", Func = function(luaMenu) RunConsoleCommand("disconnect") end},
     {Title = "Main Menu", Func = function(luaMenu) gui.ActivateGameUI() luaMenu:Close() end},
     {Title = "Discord", Func = function(luaMenu) luaMenu:Close() gui.OpenURL("https://discord.gg/WRujPJn")  end},
+    {Title = "Donate", Func = function(luaMenu) luaMenu:Close() gui.OpenURL("https://imperfectgamersdonate.com/") end},
     {Title = "Traitor Role",
     GamemodeOnly = true,
     CreatedFunc = function(self, parent, luaMenu)
@@ -71,7 +72,11 @@ local Selects = {
     {Title = "Achievements", Func = function(luaMenu,pp) 
         hg.DrawAchievmentsMenu(pp)
     end},
-    {Title = "Settings", Func = function(luaMenu,pp) 
+    {Title = "PointShop", Func = function(luaMenu)
+        luaMenu:Close()
+        RunConsoleCommand("hg_pointshop")
+    end},
+{Title = "Settings", Func = function(luaMenu,pp) 
         hg.DrawSettings(pp) 
     end},
     {Title = "Appearance", Func = function(luaMenu,pp) hg.CreateApperanceMenu(pp) end},
@@ -157,7 +162,7 @@ function PANEL:Init()
     local lDock = self.lDock
     lDock:Dock(LEFT)
     lDock:SetSize(ScrW() / 4, ScrH())
-    lDock:DockMargin(ScreenScale(0), ScreenScaleH(90), ScreenScale(10), ScreenScaleH(90))
+    lDock:DockMargin(ScreenScale(0), ScreenScaleH(10), ScreenScale(10), ScreenScaleH(90))
     lDock.Paint = function(this, w, h)
         if hg.PluvTown.Active then
             surface.SetDrawColor(color_white)
@@ -247,7 +252,7 @@ function PANEL:AddSelect( pParent, strTitle, tbl )
     btn:SetFont( "ZCity_Small" )
     btn:SetTall( ScreenScale( 15 ) )
     btn:Dock(BOTTOM)
-    btn:DockMargin(ScreenScale(15),ScreenScale(1.5),0,0)
+    btn:DockMargin(ScreenScale(15),ScreenScale(5),0,0)
     btn.Func = tbl.Func
     btn.HoveredFunc = tbl.HoveredFunc
     local luaMenu = self 
