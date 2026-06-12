@@ -299,6 +299,7 @@ if CLIENT then
             ["riot"] = true,
             ["gwars"] = true,
             ["criresp"] = true,
+            ["battleroyale"] = true,
         }
         
         for i, mode in SortedPairsByMemberValue(zb.availableModes,"canlaunch",true) do
