@@ -1,6 +1,28 @@
 --local Organism = hg.organism
 hg.organism.module = hg.organism.module or {}
 local module = hg.organism.module
+
+local function QueueRagdollCollisionGroup(rag, collisionGroup)
+	if not IsValid(rag) then return end
+	if rag:GetCollisionGroup() == collisionGroup and not rag.hgQueuedCollisionGroup then return end
+
+	rag.hgQueuedCollisionGroup = collisionGroup
+	if rag.hgCollisionGroupQueued then return end
+	rag.hgCollisionGroupQueued = true
+
+	timer.Simple(0, function()
+		if not IsValid(rag) then return end
+
+		local queuedGroup = rag.hgQueuedCollisionGroup
+		rag.hgQueuedCollisionGroup = nil
+		rag.hgCollisionGroupQueued = nil
+
+		if queuedGroup and rag:GetCollisionGroup() != queuedGroup then
+			rag:SetCollisionGroup(queuedGroup)
+		end
+	end)
+end
+
 hg.organism.lastindex = hg.organism.lastindex or 1000000
 hook.Add("Org Clear", "Main", function(org)
 	org.alive = true
@@ -535,7 +557,9 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 
 	org.health = owner:Health()
 	local rag = owner:IsPlayer() and owner.FakeRagdoll or owner
-	if IsValid(rag) and rag:IsRagdoll() and (not owner.lastFake or owner.lastFake == 0) then rag:SetCollisionGroup((rag:GetVelocity():LengthSqr() > (200*200)) and COLLISION_GROUP_NONE or COLLISION_GROUP_WEAPON) end
+	if IsValid(rag) and rag:IsRagdoll() and (not owner.lastFake or owner.lastFake == 0) then
+		QueueRagdollCollisionGroup(rag, (rag:GetVelocity():LengthSqr() > (200*200)) and COLLISION_GROUP_NONE or COLLISION_GROUP_WEAPON)
+	end
 	if isPly then
 		if org.otrub or org.fake then hg.Fake(owner,nil,true) end
 		if not org.alive and owner:Alive() then owner:Kill() end

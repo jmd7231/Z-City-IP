@@ -361,7 +361,8 @@ if CLIENT then
 		local tr = self:GetEyeTrace()
 		local toScreen = tr.HitPos:ToScreen()
 
-		lerpthing = Lerp(0.1, lerpthing, (hg.eyeTrace(lply).Hit and not lply:IsSprinting() and not self.NoTrap) and 1 or 0)
+		local eyeTrace = hg.eyeTrace(lply)
+		lerpthing = Lerp(0.1, lerpthing, (eyeTrace and eyeTrace.Hit and not lply:IsSprinting() and not self.NoTrap) and 1 or 0)
 		colWhite.a = 255 * lerpthing
 		surface.SetDrawColor(colWhite)
 		surface.DrawRect(toScreen.x-2.5, toScreen.y-2.5, 5, 5)
