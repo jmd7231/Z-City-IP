@@ -25,7 +25,7 @@ local TEAM_LOADOUTS = {
         color = Color(75, 105, 145),
         playerClass = "ww2_american",
         primaryWeapon = "weapon_thompson",
-        machineGun = "weapon_m249",
+        machineGun = "weapon_fnmodeld",
     },
 }
 

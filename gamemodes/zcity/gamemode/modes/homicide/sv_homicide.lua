@@ -300,6 +300,15 @@ MODE.Types.standard = {
 			"weapon_glock26",
 			"weapon_conan357",
 			"weapon_fivsevn",
+			"weapon_swmp9",
+			"weapon_revolversw686",
+			"weapon_revolver412rex",
+			"weapon_grizzlymkv",
+			"weapon_mauserred9",
+			"weapon_minebeap220",
+			"weapon_cz75sp01",
+			"weapon_tti2011",
+			"weapon_glock22",
 		}
 		ply:Give(gunmanweaponspistol[math.random(#gunmanweaponspistol)])
 		//ply:Give("weapon_px4beretta")		
@@ -598,6 +607,9 @@ MODE.Types.soe = {
 			"weapon_mosin",
 			"weapon_mp18",
 			"weapon_l42a1",
+			"weapon_uzicarbine",
+			"weapon_ithaca37",
+			"weapon_revolvermts255",
 		}
 		local gun = ply:Give(gunmanweapons[math.random(#gunmanweapons)])
 		// local gun = ply:Give( ( math.random(1,2) > 1 and "weapon_remington870" ) or "weapon_kar98" )
