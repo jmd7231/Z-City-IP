@@ -759,6 +759,79 @@ function hgIsDoor(ent)
 	return (Class == "prop_door") or (Class == "prop_door_rotating") or (Class == "func_door") or (Class == "func_door_rotating")
 end
 
+local hg_massiveCollisionStuckTime = CreateConVar("hg_massive_collision_stuck_time", "10", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "How long (in seconds) a ragdoll can stay stuck in a door after collision spam before it gets removed.", 1, 60)
+local hg_massiveCollisionHits = CreateConVar("hg_massive_collision_hits", "8", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "How many ragdoll-vs-door collisions are needed to mark it as stuck.", 2, 50)
+local hg_massiveCollisionWindow = CreateConVar("hg_massive_collision_window", "1.5", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Time window (seconds) for counting ragdoll-vs-door collision spam.", 0.2, 10)
+
+function hgHandleMassiveDoorCollision(ent, door)
+	if not IsValid(ent) or not IsValid(door) then return end
+	if ent:GetClass() ~= "prop_ragdoll" then return end
+	if ent:GetMoveType() ~= MOVETYPE_VPHYSICS then return end
+
+	local phys = ent:GetPhysicsObject()
+	if not IsValid(phys) then return end
+
+	local t = CurTime()
+	local window = hg_massiveCollisionWindow:GetFloat()
+
+	ent.hgDoorSpamData = ent.hgDoorSpamData or {
+		hits = 0,
+		lastHit = 0,
+		door = nil,
+		pendingRemoval = false
+	}
+
+	local data = ent.hgDoorSpamData
+	if data.door ~= door or (t - data.lastHit) > window then
+		data.hits = 1
+		data.door = door
+	else
+		data.hits = data.hits + 1
+	end
+
+	data.lastHit = t
+	if data.pendingRemoval then return end
+	if data.hits < hg_massiveCollisionHits:GetInt() then return end
+
+	ent.hgDoorStuckToken = (ent.hgDoorStuckToken or 0) + 1
+	local token = ent.hgDoorStuckToken
+	local delay = hg_massiveCollisionStuckTime:GetFloat()
+	data.pendingRemoval = true
+
+	timer.Simple(delay, function()
+		if not IsValid(ent) or not IsValid(door) then return end
+		if ent.hgDoorStuckToken ~= token then return end
+
+		local isNearDoor = ent:GetPos():DistToSqr(door:LocalToWorld(door:OBBCenter())) <= (140 * 140)
+		local isSlow = ent:GetVelocity():LengthSqr() <= (35 * 35)
+		local stillSpamming = ent.hgDoorSpamData and (CurTime() - ent.hgDoorSpamData.lastHit) <= (window + 0.5)
+
+		if isNearDoor and isSlow and stillSpamming then
+			SafeRemoveEntity(ent)
+			return
+		end
+
+		if IsValid(ent) and ent.hgDoorSpamData then
+			ent.hgDoorSpamData.pendingRemoval = false
+		end
+	end)
+end
+
+hook.Add("OnEntityCreated", "hgMassiveDoorCollisionDetector", function(ent)
+	if not IsValid(ent) or ent:GetClass() ~= "prop_ragdoll" then return end
+
+	timer.Simple(0, function()
+		if not IsValid(ent) then return end
+
+		ent:AddCallback("PhysicsCollide", function(collider, data)
+			local hitEnt = data.HitEntity
+			if not IsValid(hitEnt) or not hgIsDoor(hitEnt) then return end
+
+			hgHandleMassiveDoorCollision(collider, hitEnt)
+		end)
+	end)
+end)
+
 function hgBlastDoors(blaster, pos, power, range, ignoreVisChecks) -- taken from JMod
 	for k, door in pairs(ents.FindInSphere(pos, 40 * power * (range or 1))) do
 		if hgIsDoor(door) and hook.Run("hg_CanDestroyDoor", door, blaster, pos, power, range, ignore) ~= false then
