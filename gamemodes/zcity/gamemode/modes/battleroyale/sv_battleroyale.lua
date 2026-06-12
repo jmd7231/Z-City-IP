@@ -134,6 +134,7 @@ MODE.LootTable = {
 
 util.AddNetworkString("zb_battleroyale_zone")
 util.AddNetworkString("zb_battleroyale_end")
+util.AddNetworkString("zb_battleroyale_thirdperson")
 
 resource.AddFile("materials/zcity/battleroyale/icon.png")
 resource.AddFile("materials/zcity/battleroyale/logo.png")
@@ -447,10 +448,35 @@ function MODE:RoundThink()
     end
 end
 
-function MODE:PlayerButtonDown(ply, button)
-    if button ~= KEY_T or not IsValid(ply) then return end
-    ply:SetNWBool("BattleRoyaleThirdPerson", not ply:GetNWBool("BattleRoyaleThirdPerson", false))
+local function setThirdPersonState(ply, enabled)
+    if not IsValid(ply) or zb.CROUND ~= "battleroyale" then return end
+
+    ply:SetNWBool("BattleRoyaleThirdPerson", enabled)
+    if not enabled then
+        ply:SetNWBool("BattleRoyaleThirdPersonShoulder", false)
+    end
 end
+
+function MODE:PlayerButtonDown(ply, button)
+    if not IsValid(ply) then return end
+
+    if button == KEY_T then
+        setThirdPersonState(ply, not ply:GetNWBool("BattleRoyaleThirdPerson", false))
+    elseif button == KEY_G and ply:GetNWBool("BattleRoyaleThirdPerson", false) then
+        ply:SetNWBool("BattleRoyaleThirdPersonShoulder", not ply:GetNWBool("BattleRoyaleThirdPersonShoulder", false))
+    end
+end
+
+net.Receive("zb_battleroyale_thirdperson", function(_, ply)
+    if zb.CROUND ~= MODE.name then return end
+
+    local action = net.ReadUInt(1)
+    if action == 0 then
+        setThirdPersonState(ply, not ply:GetNWBool("BattleRoyaleThirdPerson", false))
+    elseif ply:GetNWBool("BattleRoyaleThirdPerson", false) then
+        ply:SetNWBool("BattleRoyaleThirdPersonShoulder", not ply:GetNWBool("BattleRoyaleThirdPersonShoulder", false))
+    end
+end)
 
 function MODE:PlayerCanHearPlayersVoice(listener, talker)
     if not IsValid(listener) or not IsValid(talker) then return false end
@@ -471,6 +497,7 @@ function MODE:PlayerDeath(ply)
     self:FinishParachute(ply, false)
     ply:SetNWBool("BattleRoyaleOutsideZone", false)
     ply:SetNWBool("BattleRoyaleThirdPerson", false)
+    ply:SetNWBool("BattleRoyaleThirdPersonShoulder", false)
     ply.BattleRoyaleNextDrown = nil
     if zb.ROUND_STATE == 1 then ply:GiveSkill(-0.05) end
 end
@@ -501,6 +528,7 @@ function MODE:EndRound()
         self:FinishParachute(ply, false)
         ply:SetNWBool("BattleRoyaleOutsideZone", false)
         ply:SetNWBool("BattleRoyaleThirdPerson", false)
+        ply:SetNWBool("BattleRoyaleThirdPersonShoulder", false)
         ply.BattleRoyaleNextDrown = nil
     end
 

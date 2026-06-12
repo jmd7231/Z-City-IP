@@ -22,6 +22,47 @@ local accentColor = Color(235, 175, 65)
 local panelColor = Color(12, 14, 18, 215)
 local panelBorderColor = Color(255, 255, 255, 24)
 
+local thirdPersonRight = CreateClientConVar("zb_battleroyale_camera_right", "20", true, false, "Battle Royale third-person shoulder offset", -80, 80)
+local thirdPersonUp = CreateClientConVar("zb_battleroyale_camera_up", "0", true, false, "Battle Royale third-person vertical offset", -40, 80)
+local thirdPersonCrouchUp = CreateClientConVar("zb_battleroyale_camera_crouch_up", "15", true, false, "Battle Royale crouched camera offset", -40, 80)
+local thirdPersonForward = CreateClientConVar("zb_battleroyale_camera_forward", "-35", true, false, "Battle Royale third-person distance", -160, -10)
+local thirdPersonFov = CreateClientConVar("zb_battleroyale_camera_fov", "100", true, false, "Battle Royale third-person FOV percentage", 50, 150)
+local thirdPersonCrosshair = CreateClientConVar("zb_battleroyale_camera_crosshair", "1", true, false, "Draw the Battle Royale third-person crosshair", 0, 1)
+local thirdPersonCameraAngle
+local thirdPersonCameraPosition
+local thirdPersonCameraView
+local thirdPersonOldEyeAngles
+local thirdPersonCrouchFraction = 0
+local thirdPersonShoulderFraction = 1
+local thirdPersonHullMin = Vector(-6, -6, -6)
+local thirdPersonHullMax = Vector(6, 6, 6)
+local disabledThirdPersonMoveTypes = {
+    [MOVETYPE_FLY] = true,
+    [MOVETYPE_FLYGRAVITY] = true,
+    [MOVETYPE_OBSERVER] = true,
+    [MOVETYPE_NOCLIP] = true,
+}
+
+local function thirdPersonEnabled(ply)
+    return IsValid(ply) and ply:Alive() and ply:GetNWBool("BattleRoyaleThirdPerson", false)
+end
+
+local function requestThirdPersonAction(action)
+    if zb.CROUND ~= MODE.name then return end
+
+    net.Start("zb_battleroyale_thirdperson")
+        net.WriteUInt(action, 1)
+    net.SendToServer()
+end
+
+concommand.Add("zb_battleroyale_thirdperson", function()
+    requestThirdPersonAction(0)
+end)
+
+concommand.Add("zb_battleroyale_thirdperson_swap", function()
+    requestThirdPersonAction(1)
+end)
+
 surface.CreateFont("ZB_BattleRoyaleTitle", {
     font = "Roboto",
     size = 18,
@@ -268,41 +309,96 @@ end
 function MODE:CreateMove(cmd)
     local ply = LocalPlayer()
     if not IsValid(ply) then return end
-    if not ply:GetNWBool("BattleRoyaleParachuting", false) and not ply.Parachuting then return end
 
-    local shake = math.sin(RealTime() * 35) * 0.01
-    cmd:SetViewAngles(cmd:GetViewAngles() + Angle(shake, shake, 0))
+    if ply:GetNWBool("BattleRoyaleParachuting", false) or ply.Parachuting then
+        local shake = math.sin(RealTime() * 35) * 0.01
+        cmd:SetViewAngles(cmd:GetViewAngles() + Angle(shake, shake, 0))
+    end
+
+    if not thirdPersonEnabled(ply) or disabledThirdPersonMoveTypes[ply:GetMoveType()] then return end
+
+    local cameraAngles = thirdPersonCameraView or ply:EyeAngles()
+    local movement = Vector(cmd:GetForwardMove(), cmd:GetSideMove(), cmd:GetUpMove())
+    movement:Rotate(ply:EyeAngles() - cameraAngles)
+    cmd:SetForwardMove(movement.x)
+    cmd:SetSideMove(movement.y)
+    cmd:SetUpMove(movement.z)
 end
 
 function MODE:ShutDown()
     closeMap()
+    thirdPersonCameraAngle = nil
+    thirdPersonCameraPosition = nil
+    thirdPersonCameraView = nil
+    thirdPersonOldEyeAngles = nil
 end
 
 function MODE:CalcView(ply, origin, angles, fov)
-    if not IsValid(ply) or not ply:GetNWBool("BattleRoyaleThirdPerson", false) then return end
+    if not thirdPersonEnabled(ply) then
+        thirdPersonCameraAngle = nil
+        thirdPersonCameraPosition = nil
+        thirdPersonCameraView = nil
+        thirdPersonOldEyeAngles = nil
+        return
+    end
 
-    local distance = ply:InVehicle() and 210 or 90
-    local trace = util.TraceHull({
+    local eyeAngles = ply:EyeAngles()
+    if not thirdPersonCameraAngle then
+        thirdPersonCameraAngle = Angle(angles.p, angles.y, 0)
+    elseif thirdPersonOldEyeAngles then
+        thirdPersonCameraAngle = thirdPersonCameraAngle + (eyeAngles - thirdPersonOldEyeAngles)
+    end
+
+    thirdPersonCameraAngle:Normalize()
+    thirdPersonCameraAngle.p = math.Clamp(thirdPersonCameraAngle.p, -85, 85)
+    thirdPersonCameraAngle.r = 0
+
+    local shoulderTarget = ply:GetNWBool("BattleRoyaleThirdPersonShoulder", false) and -1 or 1
+    thirdPersonShoulderFraction = math.Approach(thirdPersonShoulderFraction, shoulderTarget, FrameTime() * 10)
+    thirdPersonCrouchFraction = math.Approach(thirdPersonCrouchFraction, ply:Crouching() and 1 or 0, FrameTime() * 10)
+
+    local cameraAngle = Angle(thirdPersonCameraAngle.p, thirdPersonCameraAngle.y, 0)
+    local desiredPosition = origin
+        + cameraAngle:Forward() * thirdPersonForward:GetFloat()
+        + cameraAngle:Right() * thirdPersonRight:GetFloat() * thirdPersonShoulderFraction
+        + cameraAngle:Up() * (thirdPersonUp:GetFloat() + thirdPersonCrouchUp:GetFloat() * thirdPersonCrouchFraction)
+    local cameraTrace = util.TraceHull({
         start = origin,
-        endpos = origin - angles:Forward() * distance,
-        mins = Vector(-4, -4, -4),
-        maxs = Vector(4, 4, 4),
+        endpos = desiredPosition,
+        mins = thirdPersonHullMin,
+        maxs = thirdPersonHullMax,
         filter = ply,
         mask = MASK_SOLID,
     })
 
+    thirdPersonCameraPosition = cameraTrace.HitPos
+    thirdPersonCameraView = cameraAngle
+
+    local aimTrace = util.TraceLine({
+        start = thirdPersonCameraPosition,
+        endpos = thirdPersonCameraPosition + cameraAngle:Forward() * 32768,
+        filter = ply,
+        mask = MASK_SHOT,
+    })
+    local aimAngle = (aimTrace.HitPos - ply:GetShootPos()):Angle()
+    aimAngle:Normalize()
+    ply:SetEyeAngles(LerpAngle(math.Clamp(FrameTime() * 10, 0, 1), eyeAngles, aimAngle))
+    thirdPersonOldEyeAngles = ply:EyeAngles()
+
+    local viewPunch = ply:GetViewPunchAngles()
+    local viewAngle = cameraAngle + viewPunch
+    viewAngle.r = 0
+
     return {
-        origin = trace.HitPos + trace.HitNormal * 4,
-        angles = angles,
-        fov = fov,
+        origin = thirdPersonCameraPosition,
+        angles = viewAngle,
+        fov = fov * math.Clamp(thirdPersonFov:GetFloat(), 50, 150) / 90,
         drawviewer = true,
     }
 end
 
 function MODE:ShouldDrawLocalPlayer(ply)
-    if IsValid(ply) and ply:GetNWBool("BattleRoyaleThirdPerson", false) then
-        return true
-    end
+    if thirdPersonEnabled(ply) then return true end
 end
 
 function MODE:HUDPaint()
@@ -315,13 +411,23 @@ function MODE:HUDPaint()
     local directionIndex = math.floor(((heading + 22.5) % 360) / 45) + 1
     local gridPosition = getGridPosition(ply:GetPos())
 
+    if thirdPersonEnabled(ply) and thirdPersonCrosshair:GetBool() then
+        local x, y = screenWidth * 0.5, screenHeight * 0.5
+        local gap, length = 5, 20
+        surface.SetDrawColor(0, 255, 0, 255)
+        surface.DrawLine(x - length, y, x - gap, y)
+        surface.DrawLine(x + gap, y, x + length, y)
+        surface.DrawLine(x, y - length, x, y - gap)
+        surface.DrawLine(x, y + gap, x, y + length)
+    end
+
     if not iconTexture:IsError() then
         surface.SetMaterial(iconTexture)
         surface.SetDrawColor(255, 255, 255)
         surface.DrawTexturedRect(screenWidth - 56, 18, 32, 32)
     end
 
-    draw.SimpleText(directions[directionIndex] .. "  |  " .. gridPosition .. "  |  M: MAP  |  T: CAMERA", "ZB_BattleRoyaleStat", screenWidth - 64, 24, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
+    draw.SimpleText(directions[directionIndex] .. "  |  " .. gridPosition .. "  |  M: MAP  |  T: CAMERA  |  G: SHOULDER", "ZB_BattleRoyaleStat", screenWidth - 64, 24, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
 
     if ply:GetNWBool("BattleRoyaleParachuting", false) then
         draw.SimpleText("PARACHUTING  |  W/S: SPEED  |  HOLD E: FLARE", "ZB_BattleRoyaleTitle", screenWidth * 0.5, screenHeight * 0.68, accentColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
