@@ -4,6 +4,7 @@ MODE.name = "battleroyale"
 MODE.PrintName = "Battle Royale"
 MODE.Description = "gm_fork only: scavenge for equipment, stay inside the collapsing safe zone, and be the last survivor."
 MODE.LootSpawn = false
+MODE.ContainerLoot = true
 MODE.LootOnTime = false
 MODE.GuiltDisabled = true
 MODE.randomSpawns = true
@@ -72,6 +73,32 @@ local gmForkLootClasses = {
     "weapon_tourniquet", "ent_armor_vest3", "ent_armor_vest1", "ent_armor_helmet1",
 }
 
+local gmForkLootContainerModels = {
+    "models/props_junk/wood_crate001a.mdl",
+    "models/props_junk/wood_crate002a.mdl",
+    "models/props_junk/cardboard_box001a.mdl",
+    "models/props_junk/cardboard_box002a.mdl",
+    "models/props_c17/suitcase001a.mdl",
+}
+
+local gmForkLootContainerCount = 20
+local gmForkLootContainerInterval = 30
+local lootContainerHullMins = Vector(-24, -24, 0)
+local lootContainerHullMaxs = Vector(24, 24, 48)
+
+local excludedLootWeapons = {
+    weapon_base = true,
+    weapon_melee = true,
+    weapon_m4super = true,
+    weapon_tpik_base = true,
+    weapon_tpik1_base = true,
+    weapon_hands_sh = true,
+    weapon_spawnmenu_pda = true,
+    weapon_slugcat = true,
+}
+
+local normalWeaponsAddedToLoot = false
+
 local gmForkVehicles = {
     {"prop_vehicle_jeep", "models/vehicle.mdl", "scripts/vehicles/jalopy.txt", Vector(6895, 6235, -9872)},
     {"prop_vehicle_jeep", "models/vehicle.mdl", "scripts/vehicles/jalopy.txt", Vector(11570, 5380, -7487)},
@@ -133,6 +160,7 @@ MODE.LootTable = {
 }
 
 util.AddNetworkString("zb_battleroyale_zone")
+util.AddNetworkString("zb_battleroyale_intro")
 util.AddNetworkString("zb_battleroyale_end")
 util.AddNetworkString("zb_battleroyale_thirdperson")
 
@@ -151,6 +179,81 @@ local function spawnAtPosition(className, pos)
     ent:Spawn()
     ent.IsSpawned = true
     return ent
+end
+
+local function spawnLootContainer(pos)
+    local offset = Vector(math.random(-512, 512), math.random(-512, 512), 384)
+    local groundTrace = util.TraceLine({
+        start = pos + offset,
+        endpos = pos + offset - Vector(0, 0, 768),
+        mask = MASK_SOLID_BRUSHONLY,
+    })
+    if not groundTrace.Hit or groundTrace.HitSky then return end
+
+    local spawnPos = groundTrace.HitPos + groundTrace.HitNormal * 4
+    local obstructionTrace = util.TraceHull({
+        start = spawnPos,
+        endpos = spawnPos,
+        mins = lootContainerHullMins,
+        maxs = lootContainerHullMaxs,
+        mask = MASK_SOLID,
+    })
+    if obstructionTrace.Hit then return end
+
+    local container = ents.Create("prop_physics")
+    if not IsValid(container) then return end
+
+    container:SetModel(gmForkLootContainerModels[math.random(#gmForkLootContainerModels)])
+    container:SetPos(spawnPos)
+    container:SetAngles(Angle(0, math.random(0, 359), 0))
+    container:Spawn()
+    container.IsSpawned = true
+
+    local physics = container:GetPhysicsObject()
+    if IsValid(physics) then
+        physics:EnableMotion(false)
+        physics:Sleep()
+    end
+
+    return container
+end
+
+local function getLootContainerSpawnPositions()
+    local positions = table.Copy(gmForkLootPositions)
+    local randomSpawns = zb.GetMapPoints("RandomSpawns") or {}
+
+    for _, point in ipairs(randomSpawns) do
+        if point.pos and isvector(point.pos) then
+            positions[#positions + 1] = point.pos
+        end
+    end
+
+    return positions
+end
+
+local function addNormalWeaponsToLootPool()
+    if normalWeaponsAddedToLoot then return end
+
+    local weaponPool = MODE.LootTable[2][2]
+    local included = {}
+    for _, lootGroup in ipairs(MODE.LootTable) do
+        for _, lootEntry in ipairs(lootGroup[2]) do
+            included[lootEntry[2]] = true
+        end
+    end
+
+    for _, weaponData in ipairs(weapons.GetList()) do
+        local className = weaponData.ClassName
+        local category = weaponData.Category or ""
+        if not isstring(className) or excludedLootWeapons[className] or included[className] then continue end
+        if not string.StartWith(className, "weapon_") or not string.StartWith(category, "Weapons -") then continue end
+        if weaponData.Spawnable ~= true or weaponData.AdminOnly == true then continue end
+
+        weaponPool[#weaponPool + 1] = {1, className}
+        included[className] = true
+    end
+
+    normalWeaponsAddedToLoot = true
 end
 
 
@@ -221,6 +324,23 @@ function MODE:BeginZonePhase(phaseIndex)
     PrintMessage(HUD_PRINTTALK, "[Battle Royale] Safe zone phase " .. phaseIndex .. " begins shrinking in " .. phase.wait .. " seconds.")
 end
 
+function MODE:SpawnLootContainerWave()
+    if not self:IsAllowedMap() then return end
+
+    local positions = getLootContainerSpawnPositions()
+    if #positions == 0 then return end
+
+    local spawnedContainers = 0
+    local attempts = gmForkLootContainerCount * 10
+    while spawnedContainers < gmForkLootContainerCount and attempts > 0 do
+        attempts = attempts - 1
+        local pos = positions[math.random(#positions)]
+        if spawnLootContainer(pos) then
+            spawnedContainers = spawnedContainers + 1
+        end
+    end
+end
+
 function MODE:SpawnGmForkContent()
     local positions = table.Copy(gmForkLootPositions)
     for index = 1, math.min(#positions, 42) do
@@ -229,6 +349,8 @@ function MODE:SpawnGmForkContent()
         local className = gmForkLootClasses[math.random(#gmForkLootClasses)]
         spawnAtPosition(className, pos)
     end
+
+    self:SpawnLootContainerWave()
 
     for _, data in ipairs(gmForkVehicles) do
         local vehicle = ents.Create(data[1])
@@ -251,12 +373,17 @@ function MODE:Intermission()
 
     game.CleanUpMap()
 
+    net.Start("zb_battleroyale_intro")
+    net.Broadcast()
+
     for _, ply in player.Iterator() do
         if ply:Team() ~= TEAM_SPECTATOR then
             ApplyAppearance(ply)
             ply:SetupTeam(0)
         end
     end
+
+    addNormalWeaponsToLootPool()
 
     self.ZoneRoute = math.random(#zoneRoutes)
     self.InitialZoneRadius = 22000
@@ -396,11 +523,17 @@ function MODE:RoundStart()
         end
     end
 
+    self.NextLootContainerWave = CurTime() + gmForkLootContainerInterval
     self:BeginZonePhase(1)
 end
 
 function MODE:Think()
     if zb.ROUND_STATE ~= 1 then return end
+
+    if CurTime() >= (self.NextLootContainerWave or 0) then
+        self.NextLootContainerWave = CurTime() + gmForkLootContainerInterval
+        self:SpawnLootContainerWave()
+    end
 
     for _, ply in player.Iterator() do
         self:UpdateParachute(ply)
@@ -457,16 +590,6 @@ local function setThirdPersonState(ply, enabled)
     end
 end
 
-function MODE:PlayerButtonDown(ply, button)
-    if not IsValid(ply) then return end
-
-    if button == KEY_T then
-        setThirdPersonState(ply, not ply:GetNWBool("BattleRoyaleThirdPerson", false))
-    elseif button == KEY_G and ply:GetNWBool("BattleRoyaleThirdPerson", false) then
-        ply:SetNWBool("BattleRoyaleThirdPersonShoulder", not ply:GetNWBool("BattleRoyaleThirdPersonShoulder", false))
-    end
-end
-
 net.Receive("zb_battleroyale_thirdperson", function(_, ply)
     if zb.CROUND ~= MODE.name then return end
 
@@ -512,6 +635,8 @@ function MODE:CanSpawn()
 end
 
 function MODE:EndRound()
+    self.NextLootContainerWave = nil
+
     if self.InvalidMap then
         self.InvalidMap = nil
         return

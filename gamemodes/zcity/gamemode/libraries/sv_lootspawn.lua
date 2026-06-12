@@ -182,7 +182,7 @@ local developer = GetConVar("developer")
 function hg.GenerateLoot(ply,ent,func)
 	local curRound, rtype = CurrentRound()
 	
-	local should = curRound.LootSpawn
+	local should = curRound.LootSpawn or (IsValid(ent) and curRound.ContainerLoot)
 	
 	if not (should or (curRound.Lootables and IsValid(ent) and curRound.Lootables[ent:GetModel()])) then
 		return

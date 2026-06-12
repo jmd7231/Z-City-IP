@@ -14,13 +14,15 @@ local zone = {
     damage = 0,
 }
 
-local circleMaterial = Material("cable/redlaser")
+local forcefieldMaterial = Material("hmcd_dmzone")
 local whiteMaterial = Material("vgui/white")
 local warningColor = Color(235, 65, 45)
 local safeColor = Color(80, 190, 110)
 local accentColor = Color(235, 175, 65)
 local panelColor = Color(12, 14, 18, 215)
 local panelBorderColor = Color(255, 255, 255, 24)
+local deploymentIntroActive = false
+local deploymentIntroAlpha = 0
 
 local thirdPersonRight = CreateClientConVar("zb_battleroyale_camera_right", "20", true, false, "Battle Royale third-person shoulder offset", -80, 80)
 local thirdPersonUp = CreateClientConVar("zb_battleroyale_camera_up", "0", true, false, "Battle Royale third-person vertical offset", -40, 80)
@@ -80,6 +82,20 @@ surface.CreateFont("ZB_BattleRoyaleTimer", {
 surface.CreateFont("ZB_BattleRoyaleStat", {
     font = "Roboto",
     size = 17,
+    weight = 600,
+    extended = true,
+})
+
+surface.CreateFont("ZB_BattleRoyaleIntro", {
+    font = "Roboto",
+    size = ScreenScale(30),
+    weight = 900,
+    extended = true,
+})
+
+surface.CreateFont("ZB_BattleRoyaleIntroSubtitle", {
+    font = "Roboto",
+    size = ScreenScale(10),
     weight = 600,
     extended = true,
 })
@@ -240,6 +256,12 @@ local function aliveCount()
     return count
 end
 
+net.Receive("zb_battleroyale_intro", function()
+    deploymentIntroActive = true
+    deploymentIntroAlpha = 255
+    closeMap()
+end)
+
 net.Receive("zb_battleroyale_zone", function()
     zone.startCenter = net.ReadVector()
     zone.targetCenter = net.ReadVector()
@@ -254,6 +276,8 @@ end)
 
 net.Receive("zb_battleroyale_end", function()
     closeMap()
+    deploymentIntroActive = false
+    deploymentIntroAlpha = 0
 
     local winner = net.ReadEntity()
     local name = IsValid(winner) and winner:Nick() or "Nobody"
@@ -265,21 +289,8 @@ end)
 function MODE:PostDrawTranslucentRenderables(depth, skybox, draw3DSkybox)
     if skybox or draw3DSkybox or zone.startRadius <= 0 then return end
 
-    local radius = getRadius()
-    local segments = 96
-    local previous
-
-    render.SetMaterial(circleMaterial)
-    for index = 0, segments do
-        local angle = math.rad(index / segments * 360)
-        local point = getCenter() + Vector(math.cos(angle) * radius, math.sin(angle) * radius, 12)
-
-        if previous then
-            render.DrawBeam(previous, point, 12, 0, 1, Color(235, 65, 45, 180))
-        end
-
-        previous = point
-    end
+    render.SetMaterial(forcefieldMaterial)
+    render.DrawSphere(getCenter(), -getRadius(), 60, 60, color_white)
 end
 
 function MODE:RenderScreenspaceEffects()
@@ -403,9 +414,25 @@ end
 
 function MODE:HUDPaint()
     local ply = LocalPlayer()
-    if not IsValid(ply) or zone.startRadius <= 0 then return end
+    if not IsValid(ply) then return end
 
     local screenWidth, screenHeight = ScrW(), ScrH()
+    if deploymentIntroActive and ply:GetNWBool("BattleRoyaleParachuting", false) then
+        deploymentIntroActive = false
+    end
+
+    local targetIntroAlpha = deploymentIntroActive and 255 or 0
+    deploymentIntroAlpha = math.Approach(deploymentIntroAlpha, targetIntroAlpha, FrameTime() * 850)
+    if deploymentIntroAlpha > 0 then
+        surface.SetDrawColor(0, 0, 0, deploymentIntroAlpha)
+        surface.DrawRect(0, 0, screenWidth, screenHeight)
+        draw.SimpleText("BATTLE ROYALE", "ZB_BattleRoyaleIntro", screenWidth * 0.5, screenHeight * 0.46, Color(255, 255, 255, deploymentIntroAlpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("PREPARE FOR DEPLOYMENT", "ZB_BattleRoyaleIntroSubtitle", screenWidth * 0.5, screenHeight * 0.56, Color(accentColor.r, accentColor.g, accentColor.b, deploymentIntroAlpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+        if deploymentIntroActive then return end
+    end
+
+    if zone.startRadius <= 0 then return end
     local heading = math.NormalizeAngle(ply:EyeAngles().y)
     local directions = {"E", "NE", "N", "NW", "W", "SW", "S", "SE"}
     local directionIndex = math.floor(((heading + 22.5) % 360) / 45) + 1
@@ -427,7 +454,7 @@ function MODE:HUDPaint()
         surface.DrawTexturedRect(screenWidth - 56, 18, 32, 32)
     end
 
-    draw.SimpleText(directions[directionIndex] .. "  |  " .. gridPosition .. "  |  M: MAP  |  T: CAMERA  |  G: SHOULDER", "ZB_BattleRoyaleStat", screenWidth - 64, 24, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
+    draw.SimpleText(directions[directionIndex] .. "  |  " .. gridPosition .. "  |  M: MAP", "ZB_BattleRoyaleStat", screenWidth - 64, 24, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
 
     if ply:GetNWBool("BattleRoyaleParachuting", false) then
         draw.SimpleText("PARACHUTING  |  W/S: SPEED  |  HOLD E: FLARE", "ZB_BattleRoyaleTitle", screenWidth * 0.5, screenHeight * 0.68, accentColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
