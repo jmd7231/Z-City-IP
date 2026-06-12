@@ -14,7 +14,7 @@ local zone = {
     damage = 0,
 }
 
-local circleMaterial = Material("cable/redlaser")
+local forcefieldMaterial = Material("hmcd_dmzone")
 local whiteMaterial = Material("vgui/white")
 local warningColor = Color(235, 65, 45)
 local safeColor = Color(80, 190, 110)
@@ -265,21 +265,8 @@ end)
 function MODE:PostDrawTranslucentRenderables(depth, skybox, draw3DSkybox)
     if skybox or draw3DSkybox or zone.startRadius <= 0 then return end
 
-    local radius = getRadius()
-    local segments = 96
-    local previous
-
-    render.SetMaterial(circleMaterial)
-    for index = 0, segments do
-        local angle = math.rad(index / segments * 360)
-        local point = getCenter() + Vector(math.cos(angle) * radius, math.sin(angle) * radius, 12)
-
-        if previous then
-            render.DrawBeam(previous, point, 12, 0, 1, Color(235, 65, 45, 180))
-        end
-
-        previous = point
-    end
+    render.SetMaterial(forcefieldMaterial)
+    render.DrawSphere(getCenter(), -getRadius(), 60, 60, color_white)
 end
 
 function MODE:RenderScreenspaceEffects()

@@ -457,16 +457,6 @@ local function setThirdPersonState(ply, enabled)
     end
 end
 
-function MODE:PlayerButtonDown(ply, button)
-    if not IsValid(ply) then return end
-
-    if button == KEY_T then
-        setThirdPersonState(ply, not ply:GetNWBool("BattleRoyaleThirdPerson", false))
-    elseif button == KEY_G and ply:GetNWBool("BattleRoyaleThirdPerson", false) then
-        ply:SetNWBool("BattleRoyaleThirdPersonShoulder", not ply:GetNWBool("BattleRoyaleThirdPersonShoulder", false))
-    end
-end
-
 net.Receive("zb_battleroyale_thirdperson", function(_, ply)
     if zb.CROUND ~= MODE.name then return end
 
