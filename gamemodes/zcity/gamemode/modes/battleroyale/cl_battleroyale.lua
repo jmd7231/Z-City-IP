@@ -46,6 +46,127 @@ local function getRadius()
     return Lerp(math.Clamp(fraction, 0, 1), zone.startRadius, zone.targetRadius)
 end
 
+local mapPanel
+local mapWorldMin = MODE.MapWorldMin or -15400
+local mapWorldMax = MODE.MapWorldMax or 15400
+local mapTexture = Material(MODE.MapMaterial or "entities/br_worldmap.png", "smooth")
+local compassTexture = Material(MODE.CompassMaterial or "entities/bussola.png", "smooth")
+
+local function worldToMap(pos, width, height)
+    local worldMin = mapWorldMin
+    local worldSize = mapWorldMax - worldMin
+    local x = math.Clamp((pos.x - worldMin) / worldSize, 0, 1) * width
+    local y = (1 - math.Clamp((pos.y - worldMin) / worldSize, 0, 1)) * height
+
+    return x, y
+end
+
+local function getGridPosition(pos)
+    local worldMin = mapWorldMin
+    local worldSize = mapWorldMax - worldMin
+    local column = math.Clamp(math.floor((pos.x - worldMin) / worldSize * 8), 0, 7)
+    local row = math.Clamp(math.floor((mapWorldMax - pos.y) / worldSize * 8), 0, 7)
+
+    return string.char(string.byte("A") + column) .. tostring(row + 1)
+end
+
+local function drawMapGrid(x, y, width, height)
+    surface.SetDrawColor(255, 255, 255, 28)
+    for index = 1, 7 do
+        local offsetX = x + width * index / 8
+        local offsetY = y + height * index / 8
+        surface.DrawLine(offsetX, y, offsetX, y + height)
+        surface.DrawLine(x, offsetY, x + width, offsetY)
+    end
+
+    for index = 0, 7 do
+        draw.SimpleText(string.char(string.byte("A") + index), "ZB_BattleRoyaleStat", x + width * (index + 0.5) / 8, y + 5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+        draw.SimpleText(index + 1, "ZB_BattleRoyaleStat", x + 7, y + height * (index + 0.5) / 8, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+end
+
+local function drawWorldMap(panel, width, height)
+    local padding = 36
+    local mapSize = math.max(math.min(width, height) - padding * 2, 64)
+    local mapX = (width - mapSize) * 0.5
+    local mapY = (height - mapSize) * 0.5
+    local mapWidth, mapHeight = mapSize, mapSize
+
+    surface.SetDrawColor(12, 14, 18, 255)
+    surface.DrawRect(0, 0, width, height)
+
+    if not mapTexture:IsError() then
+        surface.SetMaterial(mapTexture)
+        surface.SetDrawColor(255, 255, 255)
+        surface.DrawTexturedRect(mapX, mapY, mapWidth, mapHeight)
+    else
+        surface.SetDrawColor(32, 38, 42)
+        surface.DrawRect(mapX, mapY, mapWidth, mapHeight)
+        draw.SimpleText("br_worldmap.png is not mounted", "ZB_BattleRoyaleTitle", width * 0.5, height * 0.5, warningColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+
+    drawMapGrid(mapX, mapY, mapWidth, mapHeight)
+
+    if not compassTexture:IsError() then
+        surface.SetMaterial(compassTexture)
+        surface.SetDrawColor(255, 255, 255, 210)
+        surface.DrawTexturedRect(mapX, mapY, mapWidth, mapHeight)
+    end
+
+    if zone.startRadius > 0 then
+        local zoneX, zoneY = worldToMap(zone.center, mapWidth, mapHeight)
+        local worldSize = mapWorldMax - mapWorldMin
+        local zoneRadius = getRadius() / worldSize * mapWidth
+
+        surface.SetDrawColor(warningColor)
+        surface.DrawCircle(mapX + zoneX, mapY + zoneY, zoneRadius, warningColor.r, warningColor.g, warningColor.b, 220)
+    end
+
+    local ply = LocalPlayer()
+    if IsValid(ply) then
+        local playerX, playerY = worldToMap(ply:GetPos(), mapWidth, mapHeight)
+        local markerX, markerY = mapX + playerX, mapY + playerY
+        local yaw = math.rad(ply:EyeAngles().y)
+        local direction = Vector(math.cos(yaw), -math.sin(yaw), 0)
+        local right = Vector(-direction.y, direction.x, 0)
+        local tipX, tipY = markerX + direction.x * 13, markerY + direction.y * 13
+        local leftX, leftY = markerX - direction.x * 8 + right.x * 7, markerY - direction.y * 8 + right.y * 7
+        local rightX, rightY = markerX - direction.x * 8 - right.x * 7, markerY - direction.y * 8 - right.y * 7
+
+        surface.SetDrawColor(accentColor)
+        surface.DrawPoly({
+            {x = tipX, y = tipY},
+            {x = leftX, y = leftY},
+            {x = rightX, y = rightY},
+        })
+    end
+end
+
+local function closeMap()
+    if IsValid(mapPanel) then mapPanel:Remove() end
+    mapPanel = nil
+end
+
+local function toggleMap()
+    if IsValid(mapPanel) then
+        closeMap()
+        return
+    end
+
+    mapPanel = vgui.Create("DFrame")
+    mapPanel:SetSize(math.min(ScrW() * 0.78, ScrH() * 0.82), math.min(ScrW() * 0.78, ScrH() * 0.82))
+    mapPanel:Center()
+    mapPanel:SetTitle("gm_fork World Map  |  Press M to close")
+    mapPanel:SetDraggable(false)
+    mapPanel:ShowCloseButton(true)
+    mapPanel:MakePopup()
+    mapPanel.OnRemove = function() mapPanel = nil end
+
+    local canvas = vgui.Create("DPanel", mapPanel)
+    canvas:Dock(FILL)
+    canvas.Paint = drawWorldMap
+end
+
 local function aliveCount()
     local count = 0
     for _, ply in player.Iterator() do
@@ -68,6 +189,8 @@ net.Receive("zb_battleroyale_zone", function()
 end)
 
 net.Receive("zb_battleroyale_end", function()
+    closeMap()
+
     local winner = net.ReadEntity()
     local name = IsValid(winner) and winner:Nick() or "Nobody"
 
@@ -112,11 +235,37 @@ function MODE:RenderScreenspaceEffects()
     })
 end
 
+function MODE:PlayerButtonDown(ply, key)
+    if ply ~= LocalPlayer() or key ~= KEY_M or string.lower(game.GetMap()) ~= (self.AllowedMap or "gm_fork") then return end
+    if gui.IsGameUIVisible() or IsValid(vgui.GetKeyboardFocus()) then return end
+
+    toggleMap()
+end
+
+function MODE:CreateMove(cmd)
+    local ply = LocalPlayer()
+    if not IsValid(ply) then return end
+    if not ply:GetNWBool("BattleRoyaleParachuting", false) and not ply.Parachuting then return end
+
+    local shake = math.sin(RealTime() * 35) * 0.01
+    cmd:SetViewAngles(cmd:GetViewAngles() + Angle(shake, shake, 0))
+end
+
+function MODE:ShutDown()
+    closeMap()
+end
+
 function MODE:HUDPaint()
     local ply = LocalPlayer()
     if not IsValid(ply) or zone.startRadius <= 0 then return end
 
     local screenWidth, screenHeight = ScrW(), ScrH()
+    local heading = math.NormalizeAngle(ply:EyeAngles().y)
+    local directions = {"E", "NE", "N", "NW", "W", "SW", "S", "SE"}
+    local directionIndex = math.floor(((heading + 22.5) % 360) / 45) + 1
+    local gridPosition = getGridPosition(ply:GetPos())
+
+    draw.SimpleText(directions[directionIndex] .. "  |  " .. gridPosition .. "  |  M: MAP", "ZB_BattleRoyaleStat", screenWidth - 24, 24, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
     local radius = getRadius()
     local delta = ply:GetPos() - zone.center
     delta.z = 0

@@ -2,7 +2,7 @@ local MODE = MODE
 
 MODE.name = "battleroyale"
 MODE.PrintName = "Battle Royale"
-MODE.Description = "Scavenge for equipment, stay inside the collapsing safe zone, and be the last survivor."
+MODE.Description = "gm_fork only: scavenge for equipment, stay inside the collapsing safe zone, and be the last survivor."
 MODE.LootSpawn = true
 MODE.LootOnTime = false
 MODE.GuiltDisabled = true
@@ -109,8 +109,12 @@ local function calculateInitialZone(positions)
     return center, math.max(radius + 512, 1400)
 end
 
+function MODE:IsAllowedMap()
+    return string.lower(game.GetMap()) == self.AllowedMap
+end
+
 function MODE:CanLaunch()
-    return #getSpawnPoints() >= 2
+    return self:IsAllowedMap() and #getSpawnPoints() >= 2
 end
 
 function MODE:GetZoneRadius(atTime)
@@ -159,6 +163,12 @@ function MODE:BeginZonePhase(phaseIndex)
 end
 
 function MODE:Intermission()
+    self.InvalidMap = not self:IsAllowedMap()
+    if self.InvalidMap then
+        PrintMessage(HUD_PRINTTALK, "[Battle Royale] This mode can only be played on gm_fork.")
+        return
+    end
+
     game.CleanUpMap()
 
     local activePositions = {}
@@ -190,10 +200,12 @@ function MODE:Intermission()
 end
 
 function MODE:ShouldRoundEnd()
-    return #zb:CheckAlive(true) <= 1
+    return self.InvalidMap or #zb:CheckAlive(true) <= 1
 end
 
 function MODE:RoundStart()
+    if self.InvalidMap then return end
+
     for _, ply in player.Iterator() do
         if ply:Alive() then
             ply:SetSuppressPickupNotices(true)
@@ -281,6 +293,11 @@ function MODE:CanSpawn()
 end
 
 function MODE:EndRound()
+    if self.InvalidMap then
+        self.InvalidMap = nil
+        return
+    end
+
     local winner = zb:CheckAlive(true)[1]
 
     if IsValid(winner) then
