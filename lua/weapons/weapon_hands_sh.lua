@@ -4,15 +4,93 @@ local function RagdollOwner(ent)
 	return hg.RagdollOwner(ent)
 end
 
-local function QueueCollisionRulesChanged(ent)
-	if not IsValid(ent) then return end
-	timer.Simple(0, function()
+local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+local pendingCustomCollisionCheck = setmetatable({}, {__mode = "k"})
+local collisionRefreshQueued = false
+local collisionRefreshHookName = "hg_safe_collision_rules_changed_hands"
+
+local function FlushCollisionRefreshQueue()
+	collisionRefreshQueued = false
+
+	for ent, customCollisionCheck in pairs(pendingCustomCollisionCheck) do
+		pendingCustomCollisionCheck[ent] = nil
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			if ent:GetCustomCollisionCheck() != customCollisionCheck then
+				ent:SetCustomCollisionCheck(customCollisionCheck)
+			else
+				ent:CollisionRulesChanged()
+			end
+		end
+	end
+
+	for ent in pairs(pendingCollisionRefresh) do
+		pendingCollisionRefresh[ent] = nil
+
 		if IsValid(ent) then
 			ent:CollisionRulesChanged()
 		end
+	end
+end
+
+local function QueueCollisionRefreshFlush()
+	if collisionRefreshQueued then return end
+
+	collisionRefreshQueued = true
+	hook.Add("Think", collisionRefreshHookName, function()
+		hook.Remove("Think", collisionRefreshHookName)
+		FlushCollisionRefreshQueue()
 	end)
 end
 
+local function QueueCollisionRulesChanged(ent)
+	if not IsValid(ent) then return end
+
+	if hg and hg.SafeCollisionRulesChanged then
+		hg.SafeCollisionRulesChanged(ent)
+		return
+	end
+
+	pendingCollisionRefresh[ent] = true
+	QueueCollisionRefreshFlush()
+end
+
+local function QueueCustomCollisionCheck(ent, enabled)
+	if not IsValid(ent) then return end
+
+	if hg and hg.SafeSetCustomCollisionCheck then
+		hg.SafeSetCustomCollisionCheck(ent, enabled)
+		return
+	end
+
+	pendingCustomCollisionCheck[ent] = enabled and true or false
+	QueueCollisionRefreshFlush()
+end
+
+
+local function WakeDroppedPhysics(ent, bone)
+	if not IsValid(ent) then return end
+
+	if bone then
+		local phys = ent:GetPhysicsObjectNum(bone)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+
+		return
+	end
+
+	local count = ent:GetPhysicsObjectCount()
+	for i = 0, count - 1 do
+		local phys = ent:GetPhysicsObjectNum(i)
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+	end
+end
 
 SWEP.Category = "ZCity Other"
 SWEP.Instructions = "LMB - raise fists\nRELOAD - lower fists\n\nIn the raised state:\nLMB - strike\nRMB - block\n\nIn the lowered state: RMB - raise the object, RMB+R - check the pulse (when used on someone's head or hand)\n\nWhen holding the object: RELOAD - fix the object in air, E - spin the object in the air."
@@ -1150,8 +1228,7 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 		end
 
 		if not self.CarryEnt:GetCustomCollisionCheck() then
-			self.CarryEnt:SetCustomCollisionCheck(true)
-			QueueCollisionRulesChanged(self.CarryEnt)
+			QueueCustomCollisionCheck(self.CarryEnt, true)
 			QueueCollisionRulesChanged(owner)
 
 			self.CarryEnt:CallOnRemove("removenarsla",function()
@@ -1166,10 +1243,14 @@ function SWEP:SetCarrying(ent, bone, pos, dist)
 			owner:SetNetVar("carrymass",self.CarryEnt:GetPhysicsObjectNum(self.CarryBone):GetMass())
 		end
 	else
-		if IsValid(self.CarryEnt) and self.CarryEnt:GetCustomCollisionCheck() then
-			QueueCollisionRulesChanged(self.CarryEnt)
-			QueueCollisionRulesChanged(owner)
-			//self.CarryEnt:SetCustomCollisionCheck(false)
+		if IsValid(self.CarryEnt) then
+			WakeDroppedPhysics(self.CarryEnt, self.CarryBone)
+
+			if self.CarryEnt:GetCustomCollisionCheck() then
+				QueueCollisionRulesChanged(self.CarryEnt)
+				QueueCollisionRulesChanged(owner)
+				//self.CarryEnt:SetCustomCollisionCheck(false)
+			end
 		end
 
 		if IsValid(owner:GetNetVar("carryent")) then
@@ -1685,6 +1766,8 @@ heldents = heldents or {}
 function hg.RemoveCarryEnt2(ent)
 	heldents[ent] = nil
 
+	WakeDroppedPhysics(ent)
+
 	ent.rememberedang = nil
 	ent.oldaddang = nil
 	ent.addang = nil
@@ -1733,8 +1816,7 @@ function hg.SetCarryEnt2(ply, ent, bone, mass, carrypos, targetpos, targetang, d
 			ply:SetNetVar("carrypos2", carrypos)
 
 			if not ent:GetCustomCollisionCheck() then
-				ent:SetCustomCollisionCheck(true)
-				QueueCollisionRulesChanged(ent)
+				QueueCustomCollisionCheck(ent, true)
 			end
 
 			local dist = dist or phys:GetPos():Distance(ply:EyePos())

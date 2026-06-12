@@ -437,6 +437,10 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 			--hg.organism.AddWoundManual(dmgInfo:GetInflictor(),math.random(15,25),vector_origin,angle_zero,math.random(0,ent:GetBoneCount()),CurTime()) 
 	end
 	
+	if ent:IsRagdoll() and dmgInfo:IsDamageType(DMG_BLAST) and IsValid(hg.RagdollOwner(ent)) then
+		return true
+	end
+
 	if ent:GetClass() == "npc_bullseye" then
 		local rag = IsValid(ent.rag) and ent.rag or IsValid(ent.ply) and ent.ply
 	

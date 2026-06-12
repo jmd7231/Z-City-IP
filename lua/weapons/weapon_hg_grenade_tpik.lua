@@ -317,9 +317,22 @@ function SWEP:Throw(mul, time, nosound, throwPosAdjust, throwAngAdjust)
 	ent:SetAngles(angThrow)
 	local phys = ent:GetPhysicsObject()
 	if IsValid(phys) then
+		phys:EnableMotion(true)
+		phys:Wake()
+
 		local real_ent = hg.GetCurrentCharacter(owner)
 		phys:SetVelocity(IsValid(real_ent) and (owner:GetAimVector() * mul/1.5) + real_ent:GetVelocity() or vector_origin)
 	end
+
+	timer.Simple(0, function()
+		if not IsValid(ent) then return end
+
+		local phys = ent:GetPhysicsObject()
+		if IsValid(phys) then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+	end)
 	if owner:IsOnGround() then
 		owner:SetVelocity(owner:GetVelocity() - owner:GetVelocity()/2)
 	end

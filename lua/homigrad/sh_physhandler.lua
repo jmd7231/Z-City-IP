@@ -1,3 +1,83 @@
+
+hg = hg or {}
+
+local pendingCollisionRefresh = setmetatable({}, {__mode = "k"})
+local pendingCustomCollisionCheck = setmetatable({}, {__mode = "k"})
+local collisionRefreshQueued = false
+
+local function FlushPendingCollisionRefresh()
+	collisionRefreshQueued = false
+
+	for ent, customCollisionCheck in pairs(pendingCustomCollisionCheck) do
+		pendingCustomCollisionCheck[ent] = nil
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			if ent:GetCustomCollisionCheck() != customCollisionCheck then
+				ent:SetCustomCollisionCheck(customCollisionCheck)
+			else
+				ent:CollisionRulesChanged()
+			end
+		end
+	end
+
+	for ent in pairs(pendingCollisionRefresh) do
+		pendingCollisionRefresh[ent] = nil
+
+		if IsValid(ent) then
+			ent:CollisionRulesChanged()
+		end
+	end
+end
+
+local function QueueCollisionFlush()
+	if collisionRefreshQueued then return end
+
+	collisionRefreshQueued = true
+	hook.Add("Think", "hg_safe_collision_rules_changed", function()
+		hook.Remove("Think", "hg_safe_collision_rules_changed")
+		FlushPendingCollisionRefresh()
+	end)
+end
+
+function hg.SafeCollisionRulesChanged(ent)
+	if not IsValid(ent) then return end
+
+	pendingCollisionRefresh[ent] = true
+	QueueCollisionFlush()
+end
+
+function hg.SafeSetCustomCollisionCheck(ent, enabled)
+	if not IsValid(ent) then return end
+
+	pendingCustomCollisionCheck[ent] = enabled and true or false
+	QueueCollisionFlush()
+end
+
+function hg.GetSafeDropPos(ply, distance)
+	if not IsValid(ply) then return vector_origin end
+
+	distance = distance or 35
+
+	local aim = ply:GetAimVector()
+	local start = ply.GetShootPos and ply:GetShootPos() or ply:EyePos()
+	local target = start + aim * distance + Vector(0, 0, -8)
+	local tr = util.TraceHull({
+		start = start,
+		endpos = target,
+		filter = ply,
+		mins = Vector(-8, -8, -4),
+		maxs = Vector(8, 8, 4),
+		mask = MASK_SOLID
+	})
+
+	if tr.Hit then
+		return tr.HitPos - aim * 4
+	end
+
+	return target
+end
+
 local function SetAbsVelocity(pEntity, vAbsVelocity)
 	if (pEntity:GetInternalVariable("m_vecAbsVelocity") ~= vAbsVelocity) then
 		// The abs velocity won't be dirty since we're setting it here
@@ -54,6 +134,14 @@ function IsReasonable( pos )
 	return true
 end
 
+local function ShouldKeepMotionAfterCrazyPhysics(ent)
+	if not IsValid(ent) then return false end
+	if ent:IsWeapon() or ent:IsPlayerHolding() or ent.isheld then return true end
+
+	local class = ent:GetClass()
+	return class == "prop_physics" or string.StartWith(class, "ent_hg_grenade") or string.find(class, "grenade", 1, true) ~= nil
+end
+
 hook.Add("OnCrazyPhysics","crazy_physics",function(ent, physobj)--function(a,msg,c,d, r,g,b)
 	local a = ent:GetPos()
 	local angles = ent:GetAngles()
@@ -70,22 +158,32 @@ hook.Add("OnCrazyPhysics","crazy_physics",function(ent, physobj)--function(a,msg
 
 	local pos = ent:GetPos()
 
-	ent:CollisionRulesChanged()
+	hg.SafeCollisionRulesChanged(ent)
+
+	local keepMotion = ShouldKeepMotionAfterCrazyPhysics(ent)
 
 	if physobj:IsValid() then
-		physobj:EnableMotion(false)
-		physobj:Sleep()
-		physobj:SetPos(vector_origin)
-		physobj:SetAngles(angle_zero)
-		physobj:SetVelocity(vector_origin)
-		physobj:SetAngleVelocity(vector_origin)
+		if keepMotion then
+			physobj:EnableMotion(true)
+			physobj:Wake()
+			physobj:SetAngleVelocity(vector_origin)
+		else
+			physobj:EnableMotion(false)
+			physobj:Sleep()
+			physobj:SetPos(vector_origin)
+			physobj:SetAngles(angle_zero)
+			physobj:SetVelocity(vector_origin)
+			physobj:SetAngleVelocity(vector_origin)
+		end
 	end
 
-	ent:SetLocalAngularVelocity(angle_zero)
-	ent:SetVelocity(vector_origin)
-	ent:SetLocalVelocity(vector_origin)
+	if not keepMotion then
+		ent:SetLocalAngularVelocity(angle_zero)
+		ent:SetVelocity(vector_origin)
+		ent:SetLocalVelocity(vector_origin)
 
-	SetAbsVelocity(ent, vector_origin)
+		SetAbsVelocity(ent, vector_origin)
+	end
 	if SERVER then
 		local t = constraint.GetAllConstrainedEntities(ent)
 		for k,v in next, t or {} do

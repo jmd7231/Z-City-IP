@@ -25,6 +25,20 @@ local DebrisSounds = {
 local hg, util, ParticleEffect, IsValid, timer, coroutine, Vector = hg, util, ParticleEffect, IsValid, timer, coroutine, Vector
 
 local vecCone = Vector(5, 5, 0)
+
+local function SafeExplosionDirection(fromPos, origin)
+	local dir = fromPos - origin
+	local len = dir:Length()
+
+	if len < 1 then
+		dir = VectorRand()
+		dir:Normalize()
+		return dir, 1
+	end
+
+	dir:Div(len)
+	return dir, len
+end
 local ExpTypes = {
     Fire = function(Ent, Force, Mass)
 		local multi = math.min(Mass / 10,20)
@@ -67,9 +81,7 @@ local ExpTypes = {
 			end
 			
 			local phys = enta:GetPhysicsObject()
-			local force = (enta:GetPos() - SelfPos)
-			local len = force:Length()
-			force:Div(len)
+			local force, len = SafeExplosionDirection(enta:GetPos(), SelfPos)
 			local frac = math.Clamp((dis - len) / dis, 0.5, 1)
 			local forceadd = force * frac * 50000
 
@@ -174,9 +186,7 @@ local ExpTypes = {
 			end
 			
 			local phys = enta:GetPhysicsObject()
-			local force = (enta:GetPos() - SelfPos)
-			local len = force:Length()
-			force:Div(len)
+			local force, len = SafeExplosionDirection(enta:GetPos(), SelfPos)
 			local frac = math.Clamp((dis - len) / dis, 0.5, 1)
 			local forceadd = force * frac * 50000
 
@@ -281,9 +291,7 @@ local ExpTypes = {
 			end
 			
 			local phys = enta:GetPhysicsObject()
-			local force = (enta:GetPos() - SelfPos)
-			local len = force:Length()
-			force:Div(len)
+			local force, len = SafeExplosionDirection(enta:GetPos(), SelfPos)
 			local frac = math.Clamp((dis - len) / dis, 0.5, 1)
 			local forceadd = force * frac * 50000
 
