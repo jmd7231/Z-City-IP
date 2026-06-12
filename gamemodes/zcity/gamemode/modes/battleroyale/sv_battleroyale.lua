@@ -3,7 +3,8 @@ local MODE = MODE
 MODE.name = "battleroyale"
 MODE.PrintName = "Battle Royale"
 MODE.Description = "gm_fork only: scavenge for equipment, stay inside the collapsing safe zone, and be the last survivor."
-MODE.LootSpawn = true
+MODE.LootSpawn = false
+MODE.ContainerLoot = true
 MODE.LootOnTime = false
 MODE.GuiltDisabled = true
 MODE.randomSpawns = true
@@ -71,6 +72,18 @@ local gmForkLootClasses = {
     "weapon_remington870", "weapon_m4a1", "weapon_akm", "weapon_pkm", "weapon_bandage_sh",
     "weapon_tourniquet", "ent_armor_vest3", "ent_armor_vest1", "ent_armor_helmet1",
 }
+
+local gmForkLootContainerModels = {
+    "models/props_junk/wood_crate001a.mdl",
+    "models/props_junk/wood_crate002a.mdl",
+    "models/props_junk/cardboard_box001a.mdl",
+    "models/props_junk/cardboard_box002a.mdl",
+    "models/props_c17/suitcase001a.mdl",
+}
+
+local gmForkLootContainerCount = 10
+local lootContainerHullMins = Vector(-24, -24, 0)
+local lootContainerHullMaxs = Vector(24, 24, 48)
 
 local gmForkVehicles = {
     {"prop_vehicle_jeep", "models/vehicle.mdl", "scripts/vehicles/jalopy.txt", Vector(6895, 6235, -9872)},
@@ -153,6 +166,43 @@ local function spawnAtPosition(className, pos)
     return ent
 end
 
+local function spawnLootContainer(pos)
+    local offset = Vector(math.random(-192, 192), math.random(-192, 192), 256)
+    local groundTrace = util.TraceLine({
+        start = pos + offset,
+        endpos = pos + offset - Vector(0, 0, 768),
+        mask = MASK_SOLID_BRUSHONLY,
+    })
+    if not groundTrace.Hit or groundTrace.HitSky then return end
+
+    local spawnPos = groundTrace.HitPos + groundTrace.HitNormal * 4
+    local obstructionTrace = util.TraceHull({
+        start = spawnPos,
+        endpos = spawnPos,
+        mins = lootContainerHullMins,
+        maxs = lootContainerHullMaxs,
+        mask = MASK_SOLID,
+    })
+    if obstructionTrace.Hit then return end
+
+    local container = ents.Create("prop_physics")
+    if not IsValid(container) then return end
+
+    container:SetModel(gmForkLootContainerModels[math.random(#gmForkLootContainerModels)])
+    container:SetPos(spawnPos)
+    container:SetAngles(Angle(0, math.random(0, 359), 0))
+    container:Spawn()
+    container.IsSpawned = true
+
+    local physics = container:GetPhysicsObject()
+    if IsValid(physics) then
+        physics:EnableMotion(false)
+        physics:Sleep()
+    end
+
+    return container
+end
+
 
 function MODE:IsAllowedMap()
     return string.lower(game.GetMap()) == self.AllowedMap
@@ -228,6 +278,16 @@ function MODE:SpawnGmForkContent()
         local pos = table.remove(positions, positionIndex)
         local className = gmForkLootClasses[math.random(#gmForkLootClasses)]
         spawnAtPosition(className, pos)
+    end
+
+    local containerPositions = table.Copy(gmForkLootPositions)
+    local spawnedContainers = 0
+    while spawnedContainers < gmForkLootContainerCount and #containerPositions > 0 do
+        local positionIndex = math.random(#containerPositions)
+        local pos = table.remove(containerPositions, positionIndex)
+        if spawnLootContainer(pos) then
+            spawnedContainers = spawnedContainers + 1
+        end
     end
 
     for _, data in ipairs(gmForkVehicles) do
