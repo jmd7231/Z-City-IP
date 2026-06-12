@@ -146,6 +146,7 @@ MODE.LootTable = {
 }
 
 util.AddNetworkString("zb_battleroyale_zone")
+util.AddNetworkString("zb_battleroyale_intro")
 util.AddNetworkString("zb_battleroyale_end")
 util.AddNetworkString("zb_battleroyale_thirdperson")
 
@@ -310,6 +311,9 @@ function MODE:Intermission()
     end
 
     game.CleanUpMap()
+
+    net.Start("zb_battleroyale_intro")
+    net.Broadcast()
 
     for _, ply in player.Iterator() do
         if ply:Team() ~= TEAM_SPECTATOR then
