@@ -693,9 +693,10 @@ function GM:ScoreboardShow()
 	end
 
 	local disappearance = lply:GetNetVar("disappearance", nil)
+	local rnd = CurrentRound()
 	for i, ply in player.Iterator() do -- надо это говно переделать.
 		if ply:Team() == TEAM_SPECTATOR then continue end
-		if CurrentRound().name == "fear" and !ply:Alive() then continue end
+		if rnd and rnd.name == "fear" and !ply:Alive() then continue end
 		if disappearance and ply != lply then continue end
 
 		local but = vgui.Create("DButton", DScrollPanel)
@@ -771,7 +772,7 @@ function GM:ScoreboardShow()
 
 	for i, ply in player.Iterator() do
 		if ply:Team() ~= TEAM_SPECTATOR then continue end
-		if CurrentRound().name == "fear" and !ply:Alive() then continue end
+		if rnd and rnd.name == "fear" and !ply:Alive() then continue end
 		if disappearance and ply != lply then continue end
 
 		local but = vgui.Create("DButton", DScrollPanel)
