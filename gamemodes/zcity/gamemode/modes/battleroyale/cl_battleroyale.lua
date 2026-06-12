@@ -16,7 +16,30 @@ local zone = {
 local circleMaterial = Material("cable/redlaser")
 local warningColor = Color(235, 65, 45)
 local safeColor = Color(80, 190, 110)
-local panelColor = Color(12, 14, 18, 205)
+local accentColor = Color(235, 175, 65)
+local panelColor = Color(12, 14, 18, 215)
+local panelBorderColor = Color(255, 255, 255, 24)
+
+surface.CreateFont("ZB_BattleRoyaleTitle", {
+    font = "Roboto",
+    size = 18,
+    weight = 700,
+    extended = true,
+})
+
+surface.CreateFont("ZB_BattleRoyaleTimer", {
+    font = "Roboto",
+    size = 30,
+    weight = 800,
+    extended = true,
+})
+
+surface.CreateFont("ZB_BattleRoyaleStat", {
+    font = "Roboto",
+    size = 17,
+    weight = 600,
+    extended = true,
+})
 
 local function getRadius()
     local fraction = zone.shrinkEnd > zone.shrinkStart and math.TimeFraction(zone.shrinkStart, zone.shrinkEnd, CurTime()) or 1
@@ -93,44 +116,80 @@ function MODE:HUDPaint()
     local ply = LocalPlayer()
     if not IsValid(ply) or zone.startRadius <= 0 then return end
 
+    local screenWidth, screenHeight = ScrW(), ScrH()
     local radius = getRadius()
     local delta = ply:GetPos() - zone.center
     delta.z = 0
+
     local distanceToEdge = radius - delta:Length()
     local outside = distanceToEdge < 0
     local statusColor = outside and warningColor or safeColor
-    local statusText
-    local timeLeft
+    local statusLabel
+    local statusTime = ""
 
     if CurTime() < zone.shrinkStart then
-        timeLeft = math.max(math.ceil(zone.shrinkStart - CurTime()), 0)
-        statusText = "ZONE SHRINKS IN " .. string.FormattedTime(timeLeft, "%02i:%02i")
+        local timeLeft = math.max(math.ceil(zone.shrinkStart - CurTime()), 0)
+        statusLabel = "SAFE ZONE SHRINKS IN"
+        statusTime = string.FormattedTime(timeLeft, "%02i:%02i")
     elseif CurTime() < zone.shrinkEnd then
-        timeLeft = math.max(math.ceil(zone.shrinkEnd - CurTime()), 0)
-        statusText = "ZONE CLOSING  " .. string.FormattedTime(timeLeft, "%02i:%02i")
+        local timeLeft = math.max(math.ceil(zone.shrinkEnd - CurTime()), 0)
+        statusLabel = "SAFE ZONE CLOSING"
+        statusTime = string.FormattedTime(timeLeft, "%02i:%02i")
+    elseif zone.phase < zone.phaseCount then
+        statusLabel = "NEXT PHASE INCOMING"
     else
-        statusText = zone.phase < zone.phaseCount and "NEXT PHASE INCOMING" or "FINAL ZONE"
+        statusLabel = "FINAL SAFE ZONE"
     end
 
-    local width, height = 310, 112
-    local x, y = ScrW() - width - 24, 24
+    local mainWidth = math.Clamp(screenWidth * 0.34, 340, 520)
+    local mainHeight = 72
+    local statGap = 8
+    local statHeight = 38
+    local mainX = math.floor((screenWidth - mainWidth) * 0.5)
+    local mainY = math.max(math.floor(screenHeight * 0.025), 16)
+    local halfStatWidth = (mainWidth - statGap) * 0.5
+    local statY = mainY + mainHeight + statGap
 
-    draw.RoundedBox(8, x, y, width, height, panelColor)
-    draw.SimpleText("BATTLE ROYALE", "ZB_HomicideMedium", x + 14, y + 10, Color(235, 175, 65), TEXT_ALIGN_LEFT)
-    draw.SimpleText("Survivors: " .. aliveCount(), "ZB_InterfaceMedium", x + 14, y + 43, color_white, TEXT_ALIGN_LEFT)
-    draw.SimpleText("Phase: " .. zone.phase .. "/" .. zone.phaseCount, "ZB_InterfaceMedium", x + width - 14, y + 43, color_white, TEXT_ALIGN_RIGHT)
-    draw.SimpleText(statusText, "ZB_InterfaceMedium", x + 14, y + 72, statusColor, TEXT_ALIGN_LEFT)
+    draw.RoundedBox(8, mainX, mainY, mainWidth, mainHeight, panelColor)
+    surface.SetDrawColor(panelBorderColor)
+    surface.DrawOutlinedRect(mainX, mainY, mainWidth, mainHeight, 1)
+    draw.RoundedBoxEx(8, mainX, mainY, mainWidth, 4, statusColor, true, true, false, false)
+
+    draw.SimpleText(statusLabel, "ZB_BattleRoyaleTitle", mainX + mainWidth * 0.5, mainY + 14, statusColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+
+    if statusTime ~= "" then
+        draw.SimpleText(statusTime, "ZB_BattleRoyaleTimer", mainX + mainWidth * 0.5, mainY + 34, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+    else
+        draw.SimpleText("BATTLE ROYALE", "ZB_BattleRoyaleTimer", mainX + mainWidth * 0.5, mainY + 34, accentColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+    end
+
+    draw.RoundedBox(7, mainX, statY, halfStatWidth, statHeight, panelColor)
+    draw.RoundedBox(7, mainX + halfStatWidth + statGap, statY, halfStatWidth, statHeight, panelColor)
+    surface.SetDrawColor(panelBorderColor)
+    surface.DrawOutlinedRect(mainX, statY, halfStatWidth, statHeight, 1)
+    surface.DrawOutlinedRect(mainX + halfStatWidth + statGap, statY, halfStatWidth, statHeight, 1)
+
+    draw.SimpleText("SURVIVORS  " .. aliveCount(), "ZB_BattleRoyaleStat", mainX + halfStatWidth * 0.5, statY + statHeight * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    draw.SimpleText("PHASE  " .. zone.phase .. " / " .. zone.phaseCount, "ZB_BattleRoyaleStat", mainX + halfStatWidth + statGap + halfStatWidth * 0.5, statY + statHeight * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
     local edgeDistance = math.ceil(math.abs(distanceToEdge) / 52.49)
-    local edgeText = outside and ("OUTSIDE: " .. edgeDistance .. "m") or ("Edge: " .. edgeDistance .. "m")
-    draw.SimpleText(edgeText, "ZB_InterfaceMedium", x + width - 14, y + 72, statusColor, TEXT_ALIGN_RIGHT)
+    local edgeText = outside and (edgeDistance .. "m OUTSIDE SAFE ZONE") or (edgeDistance .. "m TO ZONE EDGE")
+    draw.SimpleText(edgeText, "ZB_BattleRoyaleStat", screenWidth * 0.5, statY + statHeight + 9, statusColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 
     if outside then
-        draw.SimpleText("RETURN TO THE SAFE ZONE - " .. zone.damage .. " DAMAGE/SEC", "ZB_HomicideMedium", ScrW() * 0.5, ScrH() * 0.18, warningColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        local warningWidth = math.min(460, screenWidth - 32)
+        draw.RoundedBox(7, (screenWidth - warningWidth) * 0.5, screenHeight * 0.18 - 20, warningWidth, 40, Color(55, 8, 8, 220))
+        draw.SimpleText("RETURN TO THE SAFE ZONE  |  " .. zone.damage .. " DAMAGE/SEC", "ZB_BattleRoyaleTitle", screenWidth * 0.5, screenHeight * 0.18, warningColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 
     if (zb.ROUND_START or 0) + MODE.CombatDelay > CurTime() then
         local combatTime = math.max(math.ceil((zb.ROUND_START + MODE.CombatDelay) - CurTime()), 0)
-        draw.SimpleText("SCAVENGE - COMBAT UNLOCKS IN " .. combatTime, "ZB_HomicideMedium", ScrW() * 0.5, ScrH() * 0.75, Color(235, 175, 65), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        local graceText = "SCAVENGE NOW  |  COMBAT UNLOCKS IN " .. combatTime
+        local graceWidth = math.Clamp(screenWidth * 0.42, 380, 620)
+        local graceX = (screenWidth - graceWidth) * 0.5
+        local graceY = screenHeight * 0.74
+
+        draw.RoundedBox(7, graceX, graceY, graceWidth, 42, panelColor)
+        draw.SimpleText(graceText, "ZB_BattleRoyaleTitle", screenWidth * 0.5, graceY + 21, accentColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 end
