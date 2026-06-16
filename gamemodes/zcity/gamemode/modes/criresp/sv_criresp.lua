@@ -108,7 +108,7 @@ local tblweps = {
 		{"weapon_hk416", {"holo15","grip3","laser4"} },
 		{"weapon_p90", {} },
 		{"weapon_mp7", {"holo14"} },
-		{"weapon_m4a1", {"optic2","grip3","supressor7"} }
+		{"weapon_m4a1", {"optic2","grip3","supressor7"} },
 		{"weapon_mp510mm", {} },
 
 	},
