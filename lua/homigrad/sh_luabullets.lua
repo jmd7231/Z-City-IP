@@ -12,6 +12,27 @@ MAX_TRACE_LENGTH = math.sqrt(3) * COORD_EXTENT
 
 SF_BREAK_NO_BULLET_PENETRATION = 0x0800
 
+HGZ_DispatchingLuaBulletDamage = HGZ_DispatchingLuaBulletDamage or false
+
+local function SafeDispatchTraceAttack(ent, dmginfo, trace, dir)
+	if HGZ_DispatchingLuaBulletDamage then
+		ErrorNoHalt("[ZCity] Blocked recursive Lua bullet DispatchTraceAttack\n")
+		return
+	end
+
+	HGZ_DispatchingLuaBulletDamage = true
+
+	local ok, err = pcall(function()
+		ent:DispatchTraceAttack(dmginfo, trace, dir)
+	end)
+
+	HGZ_DispatchingLuaBulletDamage = false
+
+	if not ok then
+		ErrorNoHalt("[ZCity] DispatchTraceAttack failed: " .. tostring(err) .. "\n")
+	end
+end
+
 -- From the math lib
 do
 	local band = bit.band
@@ -423,7 +444,7 @@ local function Damage(bDoDebugHit, bStartedWater, bEndNotWater, iFlags, iDamage,
 			if (fCallback) then
 				fCallback(info:GetAttacker(), tr, info, tInfo, Weapon)
 			end
-		pEntity:DispatchTraceAttack(info, tr, vShotDir)
+		SafeDispatchTraceAttack(pEntity, info, tr, vShotDir)
 		
 		if (bEndNotWater or bit.band(iFlags, FIRE_BULLETS_ALLOW_WATER_SURFACE_IMPACTS) ~= 0) then
 			Impact(Weapon, iAmmoDamageType, bFirstTimePredicted, vSrc, tr, sImpactEffect, sRagdollImpactEffect)
