@@ -300,6 +300,15 @@ MODE.Types.standard = {
 			"weapon_glock26",
 			"weapon_conan357",
 			"weapon_fivsevn",
+			"weapon_swmp9",
+			"weapon_revolversw686",
+			"weapon_revolver412rex",
+			"weapon_grizzlymkv",
+			"weapon_mauserred9",
+			"weapon_minebeap220",
+			"weapon_cz75sp01",
+			"weapon_tti2011",
+			"weapon_glock22",
 		}
 		ply:Give(gunmanweaponspistol[math.random(#gunmanweaponspistol)])
 		//ply:Give("weapon_px4beretta")		
@@ -598,16 +607,30 @@ MODE.Types.soe = {
 			"weapon_mosin",
 			"weapon_mp18",
 			"weapon_l42a1",
+			"weapon_uzicarbine",
+			"weapon_ithaca37",
+			"weapon_revolvermts255",
 		}
+
+		local gunmanextrarounds = {
+			"weapon_mp18",
+			"weapon_izh18",
+		}
+
 		local gun = ply:Give(gunmanweapons[math.random(#gunmanweapons)])
 		// local gun = ply:Give( ( math.random(1,2) > 1 and "weapon_remington870" ) or "weapon_kar98" )
 		ply.organism.recoilmul = 1.0
 		if gun:GetClass() == "weapon_kar98" or "weapon_mosin" then
 			hg.AddAttachmentForce(ply,gun,"optic12")
 		end
-		if ply:HasWeapon("weapon_izh18" or "weapon_mp18") then
-			ply:GiveAmmo(gun:GetMaxClip1() * 5, gun:GetPrimaryAmmoType(), true)
+		for k,v in pairs(gunmanextrarounds) do
+			if ply:HasWeapon(v) then
+				ply:GiveAmmo(gun:GetMaxClip1() * 5, gun:GetPrimaryAmmoType(), true)
+			end
 		end
+		// if ply:HasWeapon("weapon_izh18" or "weapon_mp18") then
+		// 	ply:GiveAmmo(gun:GetMaxClip1() * 5, gun:GetPrimaryAmmoType(), true)
+		// end
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_sling"] = true
 		ply:SetNetVar("Inventory",inv)
