@@ -698,7 +698,11 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 				bullet.penetrated = bullet.penetrated + 1
 				bullet.limit_ricochet = bullet.limit_ricochet + 1
 				bullet.Penetration = distance
-				inf:FireLuaBullets(bullet, true)
+				if HGZ_DispatchingLuaBulletDamage then
+					ErrorNoHalt("[ZCity] Blocked recursive Lua bullet penetration from organism damage\n")
+				else
+					inf:FireLuaBullets(bullet, true)
+				end
 
 				local tr = util.QuickTrace(outputHole[#outputHole], -outputDir:GetNormalized() * 10, ent)
 				local effectdata1 = EffectData()
