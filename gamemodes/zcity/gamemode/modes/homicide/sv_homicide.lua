@@ -635,9 +635,6 @@ MODE.Types.soe = {
 			"weapon_uzicarbine",
 			"weapon_ithaca37",
 			"weapon_revolvermts255",
-            "weapon_winchesterm1984",
-            "weapon_sok94",
-            "weapon_crossbowowo",
 		}
 				
 		local gunmanextrarounds = {

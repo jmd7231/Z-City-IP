@@ -138,7 +138,18 @@ function ENT:PoopBomb()
 	return math.random(1, 100) == 1
 end
 
+local function diagnosticStage(grenade, stage, details, includeSnapshot)
+	if hg.CrashDiagnostics and hg.CrashDiagnostics.GrenadeStage then
+		hg.CrashDiagnostics.GrenadeStage(grenade, stage, details, includeSnapshot)
+	end
+end
+
 function ENT:Explode()
+	diagnosticStage(self, "explode_begin", {
+		water_level = self:WaterLevel(),
+		blast_distance = self.BlastDis
+	}, true)
+
 	if self:PoopBomb() or (!self.shouldBoom and !IsValid(self.owner)) then
 		self:EmitSound("weapons/p99/slideback.wav", 75)
 		self.Exploded = true
@@ -210,14 +221,16 @@ function ENT:Explode()
 		util.Effect("eff_jack_genericboom", effectdata)
 	end
 
+	diagnosticStage(self, "sound_broadcast_begin")
 	net.Start("projectileFarSound")
 		net.WriteString(self.Sound[math.random(#self.Sound)])
 		net.WriteString(self.SoundFar[math.random(#self.SoundFar)])
 		net.WriteVector(self:GetPos())
 		net.WriteEntity(self)
 		net.WriteBool(self:WaterLevel() > 0)
-		net.WriteString(self.SoundWater[math.random(#self.SoundWater)])
+		net.WriteString(istable(self.SoundWater) and self.SoundWater[math.random(#self.SoundWater)] or self.SoundWater)
 	net.Broadcast()
+	diagnosticStage(self, "sound_broadcast_complete")
 
 	if self:WaterLevel() > 0 then
 		self:EmitSound(self.SoundWater, 140, 85, 1, CHAN_WEAPON)
@@ -265,29 +278,29 @@ function ENT:Explode()
 		EmitSound(self.DebrisSounds[math.random(#self.DebrisSounds)], self:GetPos(), self:EntIndex(), CHAN_AUTO, 1, 80)
 	end
 
+	diagnosticStage(self, "blast_damage_begin", {radius = self.BlastDis / 0.01905})
 	util.BlastDamage(self, IsValid(self.owner) and self.owner or self, selfPos, self.BlastDis / 0.01905, 35)
+	diagnosticStage(self, "blast_damage_complete")
 
 	--;; Расскажу вам тайну но у нас трассировка делалась просто ужасно
 	local dis = self.BlastDis / 0.01905
 	local disorientation_dis = 6 / 0.01905  
 	local entsCount = 0
-	for i, enta in ipairs(ents.FindInSphere(selfPos, disorientation_dis)) do
+	local nearbyEntities = ents.FindInSphere(selfPos, disorientation_dis)
+	diagnosticStage(self, "physics_pass_begin", {nearby_entities = #nearbyEntities})
+	for i, enta in ipairs(nearbyEntities) do
 		local tracePos = enta:IsPlayer() and (enta:GetPos() + enta:OBBCenter()) or enta:GetPos()
 		local tr = hg.ExplosionTrace(selfPos, tracePos, {self})
 		local phys = enta:GetPhysicsObject()
 		if IsValid(phys) then
 			entsCount = entsCount + 1
 		end
-
+		
+		local phys = enta:GetPhysicsObject()
 		local force = (enta:GetPos() - selfPos)
 		local len = force:Length()
-		if len <= 0 then
-			len = 1
-			force = VectorRand():GetNormalized()
-		else
-			force:Div(len)
-		end
-		local frac = math.Clamp((disorientation_dis - len) / disorientation_dis, 0.1, 1)
+		force:Div(len)
+		local frac = math.Clamp((disorientation_dis - len) / disorientation_dis, 0.1, 1)  
 		local physics_frac = math.Clamp((dis - len) / dis, 0.5, 1)  
 		local forceadd = force * physics_frac * 50000  
 
@@ -327,12 +340,17 @@ function ENT:Explode()
 		EmitSound(self.DebrisSounds[math.random(#self.DebrisSounds)], self:GetPos(), self:EntIndex(), CHAN_AUTO, 1, 80)
 	end
 	
+	diagnosticStage(self, "physics_pass_complete", {physics_entities = entsCount})
+
 	local Poof=EffectData()
 	Poof:SetOrigin(selfPos)
 	Poof:SetScale(1.2)
 	util.Effect("eff_jack_hmcd_shrapnel",Poof,true,true)
 
+	diagnosticStage(self, "shrapnel_scheduled", {fragmentation = self.Fragmentation}, true)
 	timer.Simple(0, function()
+		if not IsValid(self) then return end
+		diagnosticStage(self, "shrapnel_begin")
 		util.ScreenShake( selfPos, 35, 200, 1, 1000 )
 
 		local ammo = "Metal Debris"
@@ -387,20 +405,38 @@ function ENT:Explode()
 			self.ShrapnelDone = true
 		end)
 
-		coroutine.resume(co)
+		local function resumeShrapnel()
+			if coroutine.status(co) == "dead" then return false end
+
+			local success, err = coroutine.resume(co)
+			if success then return true end
+
+			diagnosticStage(self, "shrapnel_coroutine_error", {error = err}, true)
+			ErrorNoHaltWithStack("[Z-City Grenade] Shrapnel coroutine failed: " .. tostring(err) .. "\n")
+			return false
+		end
+
+		resumeShrapnel()
 
 		local index = self:EntIndex()
+		local timerName = "GrenadeCheck_" .. index
 
-		timer.Create("GrenadeCheck_" .. index, 0, 0, function()
-			if !IsValid(self) then
-				timer.Remove("GrenadeCheck_" .. index)
+		timer.Create(timerName, 0, 0, function()
+			if not IsValid(self) then
+				timer.Remove(timerName)
+				return
 			end
 
-			coroutine.resume(co)
+			if not resumeShrapnel() and not self.ShrapnelDone then
+				timer.Remove(timerName)
+				SafeRemoveEntity(self)
+				return
+			end
 
 			if self.ShrapnelDone then
+				diagnosticStage(self, "shrapnel_complete", nil, true)
 				SafeRemoveEntity(self)
-				timer.Remove("GrenadeCheck_" .. index)
+				timer.Remove(timerName)
 			end
 		end)
 		if self.ExplodeAdd then

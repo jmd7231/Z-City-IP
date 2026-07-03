@@ -70,11 +70,7 @@ hook.Add("OnCrazyPhysics","crazy_physics",function(ent, physobj)--function(a,msg
 
 	local pos = ent:GetPos()
 
-	timer.Simple(0, function()
-		if IsValid(ent) then
-			ent:CollisionRulesChanged()
-		end
-	end)
+	ent:CollisionRulesChanged()
 
 	if physobj:IsValid() then
 		physobj:EnableMotion(false)

@@ -858,7 +858,7 @@ if CLIENT then
 			local clip = self:Clip1()
 			local owner = self:GetOwner()
 			local shoot = CurTime() - self:LastShootTime()
-			local ammo = (IsValid(owner) and owner.GetAmmoCount) and owner:GetAmmoCount(self:GetPrimaryAmmoType()) or 0
+			local ammo = owner:GetAmmoCount(self:GetPrimaryAmmoType())
 			local magCount = self.AnimInsert and ammo or math.ceil(ammo / clipsize)
 			local posX = scrW*0.75
 			local posX2 = scrW*0.8
@@ -951,7 +951,7 @@ if CLIENT then
 
 	function SWEP:DrawHUD()
 		if not IsValid(self:GetOwner()) then return end
-		local ammotype = (hg.ammotypeshuy[self.Primary.Ammo].BulletSettings and hg.ammotypeshuy[self.Primary.Ammo].BulletSettings.Icon) or matPistolAmmo
+		local ammotype = (hg.ammotypeshuy[self.Primary.Ammo] and hg.ammotypeshuy[self.Primary.Ammo].BulletSettings and hg.ammotypeshuy[self.Primary.Ammo].BulletSettings.Icon) or matPistolAmmo
 		self.DrawAmmoMetods[self.AmmoDrawMetod](self,ammotype)
 		
 		self.isscoping = false

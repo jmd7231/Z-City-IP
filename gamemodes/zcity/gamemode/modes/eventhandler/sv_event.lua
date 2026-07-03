@@ -343,13 +343,26 @@ concommand.Add("zb_event_loot_save", function(ply, _, _, _)
     ply:ChatPrint("Loot table saved for server: " .. serverIdentifier)
 end)
 
+concommand.Add("zb_event_loot_load", function(ply, _, _, _)
+    if not ply:IsAdmin() then return end
+    
+    MODE:LoadLootTable()
+    net.Start("event_loot_sync")
+    net.WriteTable(MODE.CustomLootTable[1][2])
+    net.Send(ply)
+    ply:ChatPrint("Loot table loaded for server: " .. serverIdentifier)
+end)
+
 concommand.Add("zb_event_lootpoll", function(ply, _, _, _)
     if not ply:IsAdmin() and not MODE.EventersList[ply:SteamID()] then
         ply:ChatPrint("You don't have access to this command")
         return
     end
-    
-    net.Start("event_loot_request")
+
+    MODE:LoadLootTable()
+    // net.Start("event_loot_sync")
+    net.WriteTable(MODE.CustomLootTable[1][2])    
+    net.Start("event_loot_request", "event_loot_sync")
     net.Send(ply)
 end)
 

@@ -59,6 +59,9 @@ AddItemToBUY( "Beretta PX4", "Weapon", "weapon_px4beretta", 400, "Pistols", {"su
 AddItemToBUY( "PL-15", "Weapon", "weapon_pl15", 500, "Pistols", {"supressor4"} )
 AddItemToBUY( "ČZ 75", "Weapon", "weapon_cz75", 500, "Pistols", {"supressor4"} )
 AddItemToBUY( "Colt King Cobra", "Weapon", "weapon_revolver357", 800, "Pistols", {} )
+AddItemToBUY( "S&W M29", "Weapon", "weapon_revolvermodel29", 950, "Pistols" )
+AddItemToBUY( "FN Five-Seven", "Weapon", "weapon_fivsevn", 550, "Pistols", {} )
+
 
 AddItemToBUY( "Ruger 10/22", "Weapon", "weapon_ruger", 1000, "Carbines", {} )
 AddItemToBUY( "Mini-14", "Weapon", "weapon_mini14", 2200, "Carbines", {} )
@@ -67,6 +70,7 @@ AddItemToBUY( "AKM", "Weapon", "weapon_akm", 3200, "Assault", {"holo6","holo1","
 AddItemToBUY( "M4A1", "Weapon", "weapon_m4a1", 2700, "Assault", {"holo1","holo2","supressor2","holo15","optic8"}, nil, 1 )
 AddItemToBUY( "HK416", "Weapon", "weapon_hk416", 3000, "Assault", {"holo1","holo2","supressor2","holo15","optic8"}, nil, 1 )
 AddItemToBUY( "AK-74", "Weapon", "weapon_ak74", 2400, "Assault", {"holo6","holo1","holo2","supressor1","supressor8","optic7"}, nil, 0 )
+AddItemToBUY( "FN-F2000", "Weapon", "weapon_fn2000", 2400, "Assault", {"holo1","holo2","supressor2","holo15","optic8"}, nil, 1 )
 
 AddItemToBUY( "MP-5", "Weapon", "weapon_mp5", 1500, "Submachine", {"supressor4"} )
 AddItemToBUY( "MP-7", "Weapon", "weapon_mp7", 2300, "Submachine", {"holo1","holo2","supressor2","holo15"} )
@@ -180,6 +184,7 @@ AddItemToBUY( ".357 Magnum (20)", "Ammo", "ent_ammo_.357magnum", 75, "Ammo", {},
 AddItemToBUY( ".38 Special (20)", "Ammo", "ent_ammo_.38special", 75, "Ammo", {}, 20)
 AddItemToBUY( ".40 Smith & Wesson (30)", "Ammo", "ent_ammo_.40sw", 75, "Ammo", {}, 30)
 AddItemToBUY( ".44 Remington Magnum (20)", "Ammo", "ent_ammo_.44remingtonmagnum", 75, "Ammo", {}, 20)
+AddItemToBUY( "10mm Automatic (30)", "Ammo", "ent_ammo_10mmauto", 75, "Ammo", {}, 30)
 
 AddItemToBUY( "Arrow", "Ammo", "ent_ammo_arrow", 25, "Ammo", {}, 5)
 
