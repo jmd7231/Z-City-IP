@@ -681,39 +681,15 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 				end)
 			end*/
 			
-			if bullet and !bullet.HGZ_OrganismExitBullet then
-				bullet = table.Copy(bullet)
-				bullet.HGZ_OrganismExitBullet = true
-				local mul = distance / pen
-				bullet.Src = outputHole[#outputHole]
-				bullet.Dir = dir:GetNormalized()//outputDir:GetNormalized()
-				bullet.Force = bullet.Force * mul
-				bullet.Damage = bullet.Damage * mul
-				bullet.Num = 1
-				bullet.Attacker = att
-				bullet.Tracer = 0
-				bullet.TracerName = "nil"
-				bullet.IgnoreEntity = ent
-				bullet.Filter = {ent, ply and ply:InVehicle() and ply:GetVehicle() or nil}
-				bullet.penetrated = bullet.penetrated or 0
-				bullet.limit_ricochet = bullet.limit_ricochet or 0
-				bullet.penetrated = bullet.penetrated + 1
-				bullet.limit_ricochet = bullet.limit_ricochet + 1
-				bullet.Penetration = distance
-				if HGZ_DispatchingLuaBulletDamage then
-					ErrorNoHalt("[ZCity] Blocked recursive Lua bullet penetration from organism damage\n")
-				else
-					inf:FireLuaBullets(bullet, true)
-				end
-
-				local tr = util.QuickTrace(outputHole[#outputHole], -outputDir:GetNormalized() * 10, ent)
-				local effectdata1 = EffectData()
-				effectdata1:SetOrigin(outputHole[#outputHole])
-				effectdata1:SetStart(tr.HitPos)
-				effectdata1:SetEntity(inf)
-				effectdata1:SetMagnitude(2)
-				util.Effect("eff_tracer", effectdata1)
-			end
+			-- Do not fire a second Lua bullet from inside organism damage. That
+			-- re-enters DispatchTraceAttack/ShootMatrix and can hang the server.
+			local tr = util.QuickTrace(outputHole[#outputHole], -outputDir:GetNormalized() * 10, ent)
+			local effectdata1 = EffectData()
+			effectdata1:SetOrigin(outputHole[#outputHole])
+			effectdata1:SetStart(tr.HitPos)
+			effectdata1:SetEntity(inf)
+			effectdata1:SetMagnitude(2)
+			util.Effect("eff_tracer", effectdata1)
 
 			--[[local ent = ents.Create("prop_physics")
 			ent:SetModel("models/props_c17/lampShade001a.mdl")
