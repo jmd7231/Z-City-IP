@@ -11,11 +11,13 @@ MODE.ROUND_TIME = 240
 local TEAM_LOADOUTS = {
     [0] = {
         name = "American",
+        class = "american",
         color = Color(35, 90, 180),
         model = "models/player/american/light_a/light_a.mdl",
     },
     [1] = {
         name = "Redcoat",
+        class = "redcoat",
         color = Color(190, 30, 30),
         model = "models/player/british/light_b/light_b.mdl",
     },
@@ -62,8 +64,7 @@ function MODE:GiveEquipment()
 
             ply:SetSuppressPickupNotices(true)
             ply.noSound = true
-            ply:SetPlayerClass()
-            ply:SetModel(loadout.model)
+            ply:SetPlayerClass(loadout.class)
             zb.GiveRole(ply, loadout.name, loadout.color)
 
             local inv = ply:GetNetVar("Inventory", {})
