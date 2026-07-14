@@ -45,14 +45,29 @@ MODE.LootTable = {
 		{0.1,"weapon_fentanyl"},
 		{0.9,"weapon_betablock"},
 		{0.5,"weapon_adrenaline"},
+        {0.4,"ent_ammo_nails"},
 
 		{0.65,"ent_armor_mask2"},
 		{0.27, "ent_armor_helmet2"},
+        {0.80,"ent_ammo_.22longrifle"},
+        {0.80,"ent_ammo_.45acp"},
+        {0.80,"ent_ammo_.38special"},
+        {0.80,"ent_ammo_12/70gauge"},
+        {0.80,"ent_ammo_12/70slug"},
+        {0.80,"ent_ammo_9x19mmparabellum"},
+        {0.80,"ent_ammo_9x17mm"},
+        {0.80,"ent_ammo_7.62x54mm"},
+        {0.80,"ent_ammo_20mm"},
+        {0.80,"ent_ammo_.366tkm"},
+        {0.80,"ent_ammo_7.65x17mm"},
+        {0.80,"ent_ammo_arrow"},
+        
 	}},
 	{20,{
 		{12,"weapon_hammer"},
 		{6,"weapon_brick"},
 		{10,"weapon_pocketknife"},
+        {2,"weapon_nailgun"},
 
 		{4,"weapon_bat"},
 		{4,"weapon_leadpipe"},
@@ -81,6 +96,7 @@ MODE.LootTable = {
 		{5,"*barrel*"},
 
 		{15,"weapon_mp-80"},
+        {12,"weapon_m70zastavapist"},
 		{8,"weapon_makarov"},
 		{7,"weapon_ruger"},
 		{4,"weapon_revolver2"},
@@ -101,6 +117,8 @@ MODE.LootTable = {
 		{5,"weapon_doublebarrel_short"},
 		{5,"weapon_doublebarrel"},
 		{4, "weapon_flintlock"},
+        {15, "weapon_crossbowowo"},
+        {15, "weapon_hg_bow"},
 	}},
 	{4,{
 		{5,"ent_armor_vest3"},
@@ -110,6 +128,8 @@ MODE.LootTable = {
 	}},
 	{2, {
 		{4,"weapon_remington870"},
+        {3,"weapon_yellowboy"},
+        {3.5,"weapon_winchesterm1984"},
 
 		{4,"weapon_hg_molotov_tpik"},
 		{4,"weapon_hg_pipebomb_tpik"},
@@ -151,6 +171,7 @@ MODE.LootTableStandard = {
 		{1,"weapon_pocketknife"},
 		{0.32,"weapon_bat"},
 		{0.3,"weapon_leadpipe"},
+        {0.30,"weapon_nailgun"},
 
 		{0.15,"weapon_hg_extinguisher"},
 		{0.14,"weapon_hg_crowbar"},
@@ -300,6 +321,15 @@ MODE.Types.standard = {
 			"weapon_glock26",
 			"weapon_conan357",
 			"weapon_fivsevn",
+			"weapon_swmp9",
+			"weapon_revolversw686",
+			"weapon_revolver412rex",
+			"weapon_grizzlymkv",
+			"weapon_mauserred9",
+			"weapon_minebeap220",
+			"weapon_cz75sp01",
+			"weapon_tti2011",
+			"weapon_glock22",
 		}
 		ply:Give(gunmanweaponspistol[math.random(#gunmanweaponspistol)])
 		//ply:Give("weapon_px4beretta")		
@@ -426,7 +456,11 @@ MODE.Types.wildwest = {
 					"weapon_winchester",
 					"weapon_revolver2",
 					"weapon_doublebarrel",
-					"weapon_doublebarrel_short"
+					"weapon_doublebarrel_short",
+                    "weapon_revolversw686",
+                    "weapon_revolvermodel29",
+                    "weapon_yellowboy",
+                    "weapon_python",
 				}
 
 				local weapon = v:Give(guns[math.random(#guns)], true)
@@ -598,16 +632,31 @@ MODE.Types.soe = {
 			"weapon_mosin",
 			"weapon_mp18",
 			"weapon_l42a1",
+			"weapon_uzicarbine",
+			"weapon_ithaca37",
+			"weapon_revolvermts255",
 		}
+				
+		local gunmanextrarounds = {
+			"weapon_mp18",
+			"weapon_izh18",
+		    "weapon_crossbowow",
+		}
+				
 		local gun = ply:Give(gunmanweapons[math.random(#gunmanweapons)])
 		// local gun = ply:Give( ( math.random(1,2) > 1 and "weapon_remington870" ) or "weapon_kar98" )
 		ply.organism.recoilmul = 1.0
 		if gun:GetClass() == "weapon_kar98" or "weapon_mosin" then
 			hg.AddAttachmentForce(ply,gun,"optic12")
 		end
-		if ply:HasWeapon("weapon_izh18" or "weapon_mp18") then
-			ply:GiveAmmo(gun:GetMaxClip1() * 5, gun:GetPrimaryAmmoType(), true)
-		end
+		for k,v in pairs(gunmanextrarounds) do
+			if ply:HasWeapon(v) then
+				ply:GiveAmmo(gun:GetMaxClip1() * 5, gun:GetPrimaryAmmoType(), true)
+			end
+		end				
+		-- if ply:HasWeapon("weapon_izh18" or "weapon_mp18" or "weapon_crossbowowo") then
+		-- 	ply:GiveAmmo(gun:GetMaxClip1() * 5, gun:GetPrimaryAmmoType(), true)
+		-- end
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_sling"] = true
 		ply:SetNetVar("Inventory",inv)
