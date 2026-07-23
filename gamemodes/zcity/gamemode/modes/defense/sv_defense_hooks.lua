@@ -332,10 +332,14 @@ end)
 local lastNPCUpdate = 0
 local lastNPCList = {}
 local lastSentTime = 0
+local nextValidityCheck = 0
+local nextCleanupCheck = 0
 
 hook.Add("Think", "DefenseNPCValidityCheck", function()
-    if CurTime() % 5 != 0 then return end 
-    
+    local curTime = CurTime()
+    if curTime < nextValidityCheck then return end
+    nextValidityCheck = curTime + 5
+
     local MODE = CurrentRound()
     if not MODE or MODE.name ~= "defense" then return end
     
@@ -381,7 +385,7 @@ hook.Add("Think", "DefenseNPCValidityCheck", function()
             end
             
            
-            local shouldSend = #remainingNPCs ~= #lastNPCList or CurTime() - lastSentTime > 5
+            local shouldSend = #remainingNPCs ~= #lastNPCList or curTime - lastSentTime > 5
             
             if shouldSend and #remainingNPCs > 0 then
                
@@ -395,9 +399,9 @@ hook.Add("Think", "DefenseNPCValidityCheck", function()
                     end
                 end
                 
-                if isDifferent or CurTime() - lastSentTime > 10 then
+                if isDifferent or curTime - lastSentTime > 10 then
                     lastNPCList = table.Copy(remainingNPCs)
-                    lastSentTime = CurTime()
+                    lastSentTime = curTime
                     
                     net.Start("defense_highlight_last_npcs")
                     net.WriteTable(remainingNPCs)
@@ -409,8 +413,10 @@ hook.Add("Think", "DefenseNPCValidityCheck", function()
 end)
 
 hook.Add("Think", "DefenseCleanupCheck", function()
-    if CurTime() % 15 != 0 then return end 
-    
+    local curTime = CurTime()
+    if curTime < nextCleanupCheck then return end
+    nextCleanupCheck = curTime + 15
+
     local MODE = CurrentRound()
     if not MODE or MODE.name ~= "defense" then return end
     
